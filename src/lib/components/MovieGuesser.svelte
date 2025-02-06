@@ -251,13 +251,18 @@
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
+
+		@media (max-width: 768px) {
+			font-size: var(--font-size-sm);
+			gap: var(--spacing-xs);
+		}
 	}
 
 	.difficulty-label {
 		color: var(--color-neutral-400);
 		margin-right: var(--spacing-sm);
 		@media (max-width: 768px) {
-			font-size: var(--font-size-sm);
+			white-space: nowrap;
 		}
 	}
 
@@ -277,6 +282,9 @@
 		color: #ffd700;
 		transition: color 0.3s ease;
 		font-size: var(--font-size-xl);
+		@media (max-width: 768px) {
+			font-size: var(--font-size-lg);
+		}
 	}
 
 	.feedback {
