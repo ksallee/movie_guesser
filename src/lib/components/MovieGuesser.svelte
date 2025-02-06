@@ -4,7 +4,9 @@
 
 	let movies = [];
 	let currentMovie = $state(null);
-	let currentPlotIndex = $state(4);
+	// set the plot index to a random number between 0 and 4
+	const randomPlotIndex = Math.floor(Math.random() * 5);
+	let currentPlotIndex = $state(randomPlotIndex);
 	let guess = $state('');
 	let gameState = $state('playing');
 	let feedback = $state("");
@@ -29,7 +31,7 @@
 		posterPreloader.src = `https://image.tmdb.org/t/p/w500${newMovie.poster_path}`;
 
 		currentMovie = newMovie;
-		currentPlotIndex = 4; // Start with hardest plot (index 4)
+		currentPlotIndex = Math.floor(Math.random() * 5);
 		gameState = 'playing';
 		guess = '';
 		feedback = '';
@@ -143,7 +145,7 @@
 			</div>
 			<div class="plot-container">
 				<div class="plot-difficulty">
-					<span class="difficulty-label">Difficulty:</span>
+					<span class="difficulty-label">Choose level:</span>
 					{#each Array(5) as _, i}
 						<button
 							class="star-button"
@@ -228,6 +230,12 @@
 		max-width: 800px;
 		margin: 0 auto;
 		padding: var(--spacing-sm);
+
+		@media (max-width: 768px) {
+			padding: var(--spacing-md);
+			width: 100%;
+			max-width: 100%;
+		}
 	}
 
 	.game-status {
@@ -300,13 +308,23 @@
 		align-items: center;
 		max-width: 700px;
 		gap: var(--spacing-lg);
+
+		@media (max-width: 768px) {
+			padding: var(--spacing-md);
+			max-width: 100%;
+		}
 	}
 	.plot {
 		font-size: var(--font-size-xl);
 		font-weight: var(--font-weight-normal);
 		color: var(--color-neutral-500);
 		line-height: 1.4;
-		align-self: center;
+
+		@media (max-width: 768px) {
+			font-size: var(--font-size-lg2);
+			justify-self: flex-start;
+			text-align: left;
+		}
 	}
 
 	.input-area {
@@ -341,6 +359,11 @@
 		display: flex;
 		gap: var(--spacing-xl);
 		justify-content: center;
+
+		@media (max-width: 768px) {
+			flex-direction: column;
+			gap: var(--spacing-md);
+		}
 	}
 
 	.result {
