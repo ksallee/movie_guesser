@@ -151,8 +151,13 @@
 							class="star-button"
 							onclick={() => setDifficulty(i)}
 						>
-                <span class="difficulty-star">
-                  {i < currentMovie.plots[currentPlotIndex].difficulty ? '★' : '☆'}
+                <span>
+									{#if i < currentMovie.plots[currentPlotIndex].difficulty}
+										<img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
+									{:else}
+										<img  class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
+									{/if}
+
                 </span>
 						</button>
 					{/each}
@@ -254,7 +259,7 @@
 		gap: var(--spacing-sm);
 
 		@media (max-width: 768px) {
-			/*font-size: var(--font-size-md);*/
+			font-size: var(--font-size-md);
 			gap: var(--spacing-xs);
 		}
 	}
@@ -267,26 +272,25 @@
 		}
 	}
 
+	.fire {
+		width: 28px;
+		height: 28px;
+		@media (max-width: 768px) {
+			width: 24px;
+			height: 24px;
+		}
+	}
 	.star-button {
 		background: none;
 		border: none;
 		padding: 0;
 		cursor: pointer;
-		transition: transform 0.2s ease;
 	}
 
 	.star-button:hover {
 		transform: scale(1.2);
 	}
 
-	.difficulty-star {
-		color: #ffd700;
-		transition: color 0.3s ease;
-		font-size: var(--font-size-xl);
-		@media (max-width: 768px) {
-			font-size: var(--font-size-lg2);
-		}
-	}
 
 	.feedback {
 		position: fixed;
