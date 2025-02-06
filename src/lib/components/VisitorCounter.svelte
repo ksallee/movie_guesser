@@ -1,10 +1,10 @@
 <script>
   import { onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
-  import { dev } from '$app/environment';
+  import { PUBLIC_UMAMI_API_KEY } from '$env/static/public';
+	console.log("PUBLIC_UMAMI_API_KEY", PUBLIC_UMAMI_API_KEY);
 
   const WEBSITE_ID = '4e15035b-7c4c-4239-914a-3187a48999bd';
-  const API_KEY = 'iNBXkoQNEfmdOoQXxrjezbQ5PGxVoCOx';
 
   // Initialize the tween with 0
   const count = new Tween(0, {
@@ -12,15 +12,16 @@
     easing: t => t * (2 - t)
   });
 
-
   onMount(() => {
     const fetchCount = async () => {
       try {
+        const endAt = Date.now();
+        const startAt = endAt - (24 * 60 * 60 * 1000);
 
-        const response = await fetch(`https://cloud.umami.is/api/websites/${WEBSITE_ID}/stats`, {
+        const response = await fetch(`https://api.umami.is/v1/websites/${WEBSITE_ID}/stats?startAt=${startAt}&endAt=${endAt}`, {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json'
+            'Accept': 'application/json',
+            'x-umami-api-key': PUBLIC_UMAMI_API_KEY
           }
         });
 
@@ -29,17 +30,13 @@
         }
 
         const data = await response.json();
-				console.log("data", data);
-        const pageviews = data.pageviews.value;
-
-        count.target = pageviews;
+        console.log("data", data);
+        count.target = data.pageviews.value;
       } catch (error) {
         console.error('Error fetching visitor count:', error);
-        // On error, just show a fallback
-				count.target = 0;
-			}
-		};
-
+        count.target = 0;
+      }
+    };
 
     // Initial fetch
     fetchCount();
@@ -62,7 +59,7 @@
   .visitor-counter {
     display: inline-flex;
     align-items: center;
-		align-self: flex-start;
+    align-self: flex-start;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--color-neutral-200);
