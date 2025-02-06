@@ -191,6 +191,7 @@
 					</div>
 				{/if}
 				<h2>{currentMovie.title}</h2>
+				<h3>{currentMovie.release_date.substring(0, 4)}</h3>
 				<img
 					src={posterPreloader?.src || `https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
 					alt={currentMovie.title}
@@ -380,7 +381,7 @@
 	.result {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-sm);
 		align-items: center;
 	}
 
