@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
   import { PUBLIC_UMAMI_API_KEY } from '$env/static/public';
-	console.log("PUBLIC_UMAMI_API_KEY", PUBLIC_UMAMI_API_KEY);
 
   const WEBSITE_ID = '4e15035b-7c4c-4239-914a-3187a48999bd';
 
