@@ -1,4 +1,3 @@
-<!-- MovieGuesser.svelte -->
 <script>
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
@@ -9,6 +8,7 @@
 	let guess = $state('');
 	let gameState = $state('playing');
 	let feedback = $state("");
+	let posterPreloader = $state(null);
 
 	onMount(async () => {
 		const response = await fetch('/data/movies.json');
@@ -18,7 +18,17 @@
 	});
 
 	function selectRandomMovie() {
-		currentMovie = movies[Math.floor(Math.random() * movies.length)];
+		const newMovie = movies[Math.floor(Math.random() * movies.length)];
+
+		// Start preloading the poster image
+		if (posterPreloader) {
+			posterPreloader.onload = null;
+			posterPreloader.onerror = null;
+		}
+		posterPreloader = new Image();
+		posterPreloader.src = `https://image.tmdb.org/t/p/w500${newMovie.poster_path}`;
+
+		currentMovie = newMovie;
 		currentPlotIndex = 4; // Start with hardest plot (index 4)
 		gameState = 'playing';
 		guess = '';
@@ -121,8 +131,6 @@
 	}
 </script>
 
-
-
 {#if currentMovie}
 	<div class="content" in:fade>
 		{#if gameState === 'playing'}
@@ -148,7 +156,6 @@
 					{/each}
 				</div>
 				{#key currentMovie.plots[currentPlotIndex].plot}
-
 					<div class="plot" in:fade={{duration:800}}>
 						{currentMovie.plots[currentPlotIndex].plot}
 					</div>
@@ -183,7 +190,7 @@
 				{/if}
 				<h2>{currentMovie.title}</h2>
 				<img
-					src={`https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
+					src={posterPreloader?.src || `https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
 					alt={currentMovie.title}
 					class="movie-poster"
 				/>
