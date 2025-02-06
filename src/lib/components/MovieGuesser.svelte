@@ -204,15 +204,26 @@
 				/>
 				<p class="overview">{currentMovie.overview.substring(0, 350)}</p>
 				<div class="result-actions">
+					{#if currentMovie.trailer}
+						<a
+							href={currentMovie.trailer}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="button secondary-button"
+						>
+							Youtube Trailer
+						</a>
+					{/if}
 					<a
 						href={`https://www.imdb.com/title/${currentMovie.imdb_id}`}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="button primary-button"
+						class="button secondary-button"
 					>
 						View on IMDB
 					</a>
-					<button class="button secondary-button" onclick={playAgain}>
+
+					<button class="button primary-button" onclick={playAgain}>
 						Play Again
 					</button>
 				</div>
@@ -404,6 +415,11 @@
 	.result-actions {
 		display: flex;
 		gap: var(--spacing-md);
+
+		@media (max-width: 768px) {
+			flex-direction: column;
+			gap: var(--spacing-md);
+		}
 	}
 
 	.success-message {
