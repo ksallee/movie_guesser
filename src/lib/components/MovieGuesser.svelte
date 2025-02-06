@@ -4,8 +4,8 @@
 
 	let movies = [];
 	let currentMovie = $state(null);
-	// set the plot index to a random number between 0 and 4
-	const randomPlotIndex = Math.floor(Math.random() * 5);
+	// set the plot index to a random number between 1 and 4
+	const randomPlotIndex = Math.floor(Math.random() * 4) + 1;
 	let currentPlotIndex = $state(randomPlotIndex);
 	let guess = $state('');
 	let gameState = $state('playing');
@@ -31,7 +31,7 @@
 		posterPreloader.src = `https://image.tmdb.org/t/p/w500${newMovie.poster_path}`;
 
 		currentMovie = newMovie;
-		currentPlotIndex = Math.floor(Math.random() * 5);
+		currentPlotIndex = Math.floor(Math.random() * 4) + 1;
 		gameState = 'playing';
 		guess = '';
 		feedback = '';
