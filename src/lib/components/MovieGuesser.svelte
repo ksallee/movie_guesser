@@ -256,6 +256,9 @@
 	.difficulty-label {
 		color: var(--color-neutral-400);
 		margin-right: var(--spacing-sm);
+		@media (max-width: 768px) {
+			font-size: var(--font-size-sm);
+		}
 	}
 
 	.star-button {
