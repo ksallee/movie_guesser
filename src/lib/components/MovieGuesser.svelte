@@ -253,7 +253,7 @@
 		gap: var(--spacing-sm);
 
 		@media (max-width: 768px) {
-			font-size: var(--font-size-sm);
+			/*font-size: var(--font-size-md);*/
 			gap: var(--spacing-xs);
 		}
 	}
@@ -283,7 +283,7 @@
 		transition: color 0.3s ease;
 		font-size: var(--font-size-xl);
 		@media (max-width: 768px) {
-			font-size: var(--font-size-lg);
+			font-size: var(--font-size-lg2);
 		}
 	}
 
