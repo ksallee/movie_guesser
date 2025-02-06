@@ -2,6 +2,12 @@
 	import MovieGuesser from '$lib/components/MovieGuesser.svelte';
 </script>
 
+<svelte:head>
+  <title>Guess The Movie - A Movie Plot Guessing Game</title>
+  <meta name="description" content="Test your movie knowledge by guessing films from their plot descriptions. A fun and challenging movie guessing game." />
+  <meta property="og:image" content="/static/favicon.png" />
+</svelte:head>
+
 <div class="game-container">
   <h1 class="game-title">Guess The Movie</h1>
 	<MovieGuesser />
