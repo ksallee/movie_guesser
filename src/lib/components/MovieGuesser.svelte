@@ -123,7 +123,7 @@
 		}
 		let theFeedback = "FAILED";
 		let color = "var(--color-error)";
-		if (matchCount >= 2) {
+		if ((matchCount >= 2 && titleWords.length > 3) || (matchCount === 1 && titleWords.length <= 3)) {
 			theFeedback = "YOU'RE CLOSE!";
 			color = "var(--color-success)";
 		}
