@@ -5,7 +5,7 @@
 <svelte:head>
   <title>Guess The Movie - A Movie Plot Guessing Game</title>
   <meta name="description" content="Test your movie knowledge by guessing films from their plot descriptions. A fun and challenging movie guessing game." />
-  <meta property="og:image" content="/static/favicon.png" />
+  <meta property="og:image" content="/favicon.png" />
 </svelte:head>
 
 <div class="game-container">
