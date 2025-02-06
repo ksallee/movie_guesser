@@ -21,8 +21,7 @@
 	});
 
 	function selectRandomMovie() {
-		// const newMovie = movies[Math.floor(Math.random() * movies.length)];
-		const newMovie = movies[7];
+		const newMovie = movies[Math.floor(Math.random() * movies.length)];
 
 		// Start preloading the poster image
 		if (posterPreloader) {
