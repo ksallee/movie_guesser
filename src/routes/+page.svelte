@@ -1,5 +1,6 @@
 <script>
 	import MovieGuesser from '$lib/components/MovieGuesser.svelte';
+	import VisitorCounter from '$lib/components/VisitorCounter.svelte';
 </script>
 
 <svelte:head>
@@ -13,6 +14,8 @@
 <div class="game-container">
   <h1 class="game-title">Guess The Movie</h1>
 	<MovieGuesser />
+	<VisitorCounter />
+
 </div>
 
 <style>
