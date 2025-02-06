@@ -10,6 +10,7 @@
 	let guess = $state('');
 	let gameState = $state('playing');
 	let feedback = $state("");
+	let feedbackColor = $state("var(--color-error)");
 	let posterPreloader = $state(null);
 
 	onMount(async () => {
@@ -20,7 +21,8 @@
 	});
 
 	function selectRandomMovie() {
-		const newMovie = movies[Math.floor(Math.random() * movies.length)];
+		// const newMovie = movies[Math.floor(Math.random() * movies.length)];
+		const newMovie = movies[7];
 
 		// Start preloading the poster image
 		if (posterPreloader) {
@@ -52,8 +54,9 @@
 		currentPlotIndex = index;
 	}
 
-	function fail() {
-		feedback = 'FAILED';
+	function fail(theFeedback, color) {
+		feedback = theFeedback || "FAILED";
+		feedbackColor = color || "var(--color-error)";
 		guess = "";
 		if (currentPlotIndex > 0) {
 			currentPlotIndex--;
@@ -76,16 +79,10 @@
 		const guessWords = normalizedGuess.split(' ');
 		const titleWords = normalizedTitle.split(' ');
 
-		// Various matching strategies
-		if (normalizedGuess === normalizedTitle ||
-			(normalizedTitle.includes(normalizedGuess) && guessWords.length >= 2)) {
-			gameState = 'success';
-			return;
-		}
-
 		// Sequential word matching
 		let titleIdx = 0;
 		let allWordsMatch = true;
+		let matchCount = 0;
 
 		for (const word of guessWords) {
 			if (word.length <= 1) {
@@ -97,6 +94,7 @@
 			while (titleIdx < titleWords.length) {
 				if (titleWords[titleIdx].includes(word)) {
 					found = true;
+					matchCount++;
 					titleIdx++;
 					break;
 				}
@@ -108,8 +106,8 @@
 				break;
 			}
 		}
-
-		if (allWordsMatch && guessWords.length >= 2) {
+		const missingWords = titleWords.length - matchCount;
+		if (allWordsMatch && missingWords <= 1) {
 			gameState = 'success';
 			return;
 		}
@@ -120,8 +118,14 @@
 			gameState = 'success';
 			return;
 		}
+		let theFeedback = "FAILED";
+		let color = "var(--color-error)";
+		if (matchCount >= 2) {
+			theFeedback = "YOU'RE CLOSE!";
+			color = "var(--color-success)";
+		}
 
-		fail();
+		fail(theFeedback, color);
 	}
 
 	function giveUp() {
@@ -138,7 +142,7 @@
 		{#if gameState === 'playing'}
 			<div class="game-status">
 				{#if feedback}
-					<div class="feedback" in:fade>
+					<div class="feedback" in:fade style="color: {feedbackColor}">
 						{feedback}
 					</div>
 				{/if}
@@ -305,10 +309,9 @@
 
 	.feedback {
 		position: fixed;
-		top: 20%;  /* Move it higher up */
+		top: 35%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		color: var(--color-error);
 		font-size: 4rem;
 		font-weight: var(--font-weight-bold);
 		text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
