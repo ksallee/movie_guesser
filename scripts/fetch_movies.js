@@ -14,7 +14,12 @@ const openai = new OpenAI({
 const TMDB_TOKEN = process.env.TMDB_TOKEN;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'data', 'movies.json');
-const BATCH_SIZE = 50; // Number of movies to fetch per batch
+
+// Rate limiting configuration
+const BATCH_SIZE = 50;  // Number of concurrent requests
+const DELAY_BETWEEN_BATCHES = 1000;  // 1 second between batches
+const RETRY_DELAY = 5000;  // 5 seconds before retry on rate limit
+const MAX_RETRIES = 3;
 
 // Schemas remain the same
 const NonObscureMoviesSchema = z.object({
@@ -28,17 +33,38 @@ const PlotSchema = z.object({
   }))
 });
 
-async function fetchFromTMDB(endpoint) {
-  const response = await fetch(`${TMDB_BASE_URL}${endpoint}`, {
-    headers: {
-      'Authorization': `Bearer ${TMDB_TOKEN}`,
-      'accept': 'application/json'
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchFromTMDB(endpoint, retryCount = 0) {
+  try {
+    const response = await fetch(`${TMDB_BASE_URL}${endpoint}`, {
+      headers: {
+        'Authorization': `Bearer ${TMDB_TOKEN}`,
+        'accept': 'application/json'
+      }
+    });
+
+    if (response.status === 429 && retryCount < MAX_RETRIES) {
+      console.log(`Rate limited for endpoint ${endpoint}, retrying after ${RETRY_DELAY}ms...`);
+      await sleep(RETRY_DELAY);
+      return fetchFromTMDB(endpoint, retryCount + 1);
     }
-  });
-  if (!response.ok) {
-    throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Error fetching ${endpoint}, retrying...`);
+      await sleep(RETRY_DELAY);
+      return fetchFromTMDB(endpoint, retryCount + 1);
+    }
+    throw error;
   }
-  return response.json();
 }
 
 async function fetchMovieBatch(targetCount, currentPage) {
@@ -136,6 +162,74 @@ Movie overview: ${movie.overview}`
   }
 }
 
+function findBestTrailer(videos) {
+  const trailers = videos.results
+    ?.filter(video => video.site === 'YouTube' && video.type === 'Trailer')
+    .sort((a, b) => b.size - a.size);
+
+  if (!trailers?.length) {
+    return null;
+  }
+
+  return `https://www.youtube.com/watch?v=${trailers[0].key}`;
+}
+
+async function processBatch(movies, startIdx) {
+  const batch = movies.slice(startIdx, startIdx + BATCH_SIZE);
+  console.log(`Processing batch starting at index ${startIdx} (${batch.length} movies)...`);
+
+  const enrichedData = await Promise.all(
+    batch.map(async movie => {
+      try {
+        const [externalIds, videos, plots] = await Promise.all([
+          fetchFromTMDB(`/movie/${movie.id}/external_ids`),
+          fetchFromTMDB(`/movie/${movie.id}/videos?language=en-US`),
+          generatePlots(movie)
+        ]);
+
+        return {
+          id: movie.id,
+          title: movie.title,
+          overview: movie.overview,
+          poster_path: movie.poster_path,
+          imdb_id: externalIds.imdb_id,
+          trailer: findBestTrailer(videos),
+          release_date: movie.release_date,
+          vote_average: movie.vote_average,
+          plots: plots.plots
+        };
+      } catch (error) {
+        console.error(`Error processing movie ${movie.id}:`, error);
+        return null;
+      }
+    })
+  );
+
+  return enrichedData.filter(data => data !== null);
+}
+
+async function enrichMovies(movies) {
+  console.log('Enriching movies with external IDs, trailers, and plots...');
+  const enrichedMovies = [];
+  const totalBatches = Math.ceil(movies.length / BATCH_SIZE);
+
+  for (let i = 0; i < movies.length; i += BATCH_SIZE) {
+    const currentBatch = Math.floor(i / BATCH_SIZE) + 1;
+    console.log(`Processing batch ${currentBatch}/${totalBatches}...`);
+
+    const batchResults = await processBatch(movies, i);
+    enrichedMovies.push(...batchResults);
+
+    // Don't delay after the last batch
+    if (i + BATCH_SIZE < movies.length) {
+      console.log(`Waiting ${DELAY_BETWEEN_BATCHES}ms before next batch...`);
+      await sleep(DELAY_BETWEEN_BATCHES);
+    }
+  }
+
+  return enrichedMovies;
+}
+
 async function collectNonObscureMovies(targetCount) {
   let nonObscureMovies = [];
   let seenMovies = new Set();
@@ -144,7 +238,7 @@ async function collectNonObscureMovies(targetCount) {
   while (nonObscureMovies.length < targetCount) {
     // Fetch new batch of movies
     const remainingCount = targetCount - nonObscureMovies.length;
-    const batchSize = Math.min(BATCH_SIZE, remainingCount * 2); // Fetch double what we need, up to BATCH_SIZE
+    const batchSize = Math.min(BATCH_SIZE, remainingCount * 2); // Fetch double what we need
     const newMovies = await fetchMovieBatch(batchSize, currentPage);
     currentPage += Math.ceil(batchSize / 20); // TMDB returns 20 results per page
 
@@ -170,31 +264,7 @@ async function collectNonObscureMovies(targetCount) {
     }
   }
 
-  // Return all movies if we don't have enough, otherwise slice to the target count
   return nonObscureMovies.length <= targetCount ? nonObscureMovies : nonObscureMovies.slice(0, targetCount);
-}
-
-async function enrichMovies(movies) {
-  console.log('Enriching movies with external IDs and plots...');
-  return Promise.all(
-    movies.map(async (movie) => {
-      const [externalIds, plots] = await Promise.all([
-        fetchFromTMDB(`/movie/${movie.id}/external_ids`),
-        generatePlots(movie)
-      ]);
-
-      return {
-        id: movie.id,
-        title: movie.title,
-        overview: movie.overview,
-        poster_path: movie.poster_path,
-        imdb_id: externalIds.imdb_id,
-        release_date: movie.release_date,
-        vote_average: movie.vote_average,
-        plots: plots.plots
-      };
-    })
-  );
 }
 
 async function main() {
@@ -208,9 +278,16 @@ async function main() {
     const nonObscureMovies = await collectNonObscureMovies(targetMovieCount);
     console.log(`Successfully collected ${nonObscureMovies.length} non-obscure movies`);
 
-    // Then enrich them with additional data
+    // Then enrich them with additional data (now including trailers)
     const enrichedMovies = await enrichMovies(nonObscureMovies);
     console.log(`Successfully enriched ${enrichedMovies.length} movies`);
+
+    // Print some statistics
+    const moviesWithTrailers = enrichedMovies.filter(m => m.trailer).length;
+    console.log(`
+Statistics:
+- Movies with trailers: ${moviesWithTrailers}/${enrichedMovies.length}
+    `);
 
     // Save the results
     await fs.writeFile(
