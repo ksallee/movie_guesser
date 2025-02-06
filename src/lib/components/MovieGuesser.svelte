@@ -106,7 +106,11 @@
 			}
 		}
 		const missingWords = titleWords.length - matchCount;
-		if (allWordsMatch && missingWords <= 1) {
+		if (allWordsMatch && titleWords.length > 3 && missingWords <= 1) {
+			gameState = 'success';
+			return;
+		}
+		else if (allWordsMatch && titleWords.length <= 3 && missingWords === 0) {
 			gameState = 'success';
 			return;
 		}
