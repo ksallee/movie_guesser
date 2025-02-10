@@ -8,10 +8,12 @@
 		gameState: resultState = 'success',
 		onPlayAgain,
 		onNext = undefined,
+		quizMode = false    // Add this prop
 	} = $props();
 
 	$effect(() => {
-		if (resultState === 'success' && gameState.currentQuiz?.isLastQuestion) {
+		// Only handle quiz completion if we're in quiz mode
+		if (quizMode && resultState === 'success' && gameState.currentQuiz?.isLastQuestion) {
 			handleQuizCompletion();
 		}
 	});
@@ -41,7 +43,7 @@
 	<p class="overview">{movie.overview}</p>
 
 	<div class="result-actions">
-		{#if gameState.currentQuiz?.isLastQuestion}
+		{#if quizMode && gameState.currentQuiz?.isLastQuestion}
 			<button
 				class="button success-button"
 				onclick={handleQuizCompletion}

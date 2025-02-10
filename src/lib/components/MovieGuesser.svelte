@@ -318,6 +318,7 @@
 				gameState={guessState}
 				onPlayAgain={!quizMode ? selectRandomMovie : undefined}
 				onNext={quizMode ? handleNext : undefined}
+				quizMode={quizMode}
 			/>
 		{/if}
 	</div>
