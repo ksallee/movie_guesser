@@ -24,10 +24,12 @@
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
 		"svelte": "^5.0.0",
+		"svelte-loading-spinners": "^0.3.6",
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
 		"dotenv": "^16.4.7",
+		"firebase": "^11.2.0",
 		"openai": "^4.83.0",
 		"zod": "^3.24.1"
 	}

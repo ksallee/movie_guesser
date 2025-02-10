@@ -1,63 +1,126 @@
 <script>
-	import MovieGuesser from '$lib/components/MovieGuesser.svelte';
-	import VisitorCounter from '$lib/components/VisitorCounter.svelte';
+    import { gameState } from '$lib/state/gameState';
+    import { fade } from 'svelte/transition';
 </script>
 
-<svelte:head>
-  <title>Guess The Movie - A Movie Plot Guessing Game</title>
-  <meta name="description" content="Test your movie knowledge by guessing films from their plot descriptions. A fun and challenging movie guessing game." />
-  <meta property="og:image" content="/favicon.png" />
-  <meta property="og:image:width" content="256" />
-  <meta property="og:image:height" content="256" />
-</svelte:head>
+<div class="landing-container" in:fade>
+    <div class="stats-display">
+        <div class="stat-item">
+            <span class="stat-label">Total Score</span>
+            <span class="stat-value">{gameState.globalStats.score}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Accuracy</span>
+            <span class="stat-value">{gameState.globalStats.accuracy.toFixed(1)}%</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Questions Answered</span>
+            <span class="stat-value">{gameState.globalStats.totalQuestionsAnswered}</span>
+        </div>
+    </div>
 
-<div class="game-container">
-  <h1 class="game-title">Guess The Movie</h1>
-	<MovieGuesser />
-	<div class="footer">
-		<VisitorCounter />
-		<p class="footer-text">Made with ❤️ by <a href="mailto:kevin.sallee@gmail.com">Kevin Sallée </a></p>
-	</div>
+    <div class="game-modes">
+        <a href="/random" class="mode-button">
+            <span class="mode-title">Random Movies</span>
+            <span class="mode-description">Get random movie plots and test your knowledge!</span>
+        </a>
 
-
+        <a href="/quizzes" class="mode-button">
+            <span class="mode-title">Movie Quizzes</span>
+            <span class="mode-description">Take curated quizzes with themed movie collections!</span>
+        </a>
+    </div>
 </div>
 
 <style>
-	.game-container {
-		height: 100svh;
-		width: 100svw;
-		display: flex;
-		flex-direction: column;
-		padding: var(--spacing-md);
-		background: var(--color-bg);
-		color: var(--color-text);
-		@media (max-width: 768px) {
-			padding: var(--spacing-sm);
-		}
-	}
+    .landing-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-2xl);
+        max-width: 800px;
+        margin: 0 auto;
+        padding: var(--spacing-xl);
+				@media (max-width: 768px) {
+					padding: var(--spacing-sm);
+					gap: var(--spacing-lg);
+				}
+    }
 
-	.game-title {
-		text-align: center;
-		color: var(--color-primary);
-		font-size: var(--font-size-2xl);
-		font-weight: var(--font-weight-normal);
-		margin-top: var(--spacing-lg);
-	}
-	.footer{
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		width: 100%;
-		justify-content: space-between;
-		gap: var(--spacing-lg);
-	}
-	.footer-text{
-		font-size: var(--font-size-xs);
-		color: var(--color-neutral-500);
-		text-align: right;
-	}
-	a{
-		color: var(--color-primary);
-		white-space: nowrap;
-	}
+    .stats-display {
+        display: flex;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-lg);
+        background: var(--color-neutral-100);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-md);
+				justify-content: space-between;
+    }
+
+    .stat-label {
+        font-size: var(--font-size-sm);
+        color: var(--color-neutral-400);
+    }
+
+    .stat-value {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+    }
+
+    .game-modes {
+        display: flex;
+        gap: var(--spacing-xl);
+        width: 100%;
+        max-width: 600px;
+
+        @media (max-width: 768px) {
+            flex-direction: column;
+        }
+    }
+
+    .mode-button {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-xl);
+        background: var(--color-neutral-100);
+        border-radius: var(--radius-lg);
+        border: 2px solid var(--color-neutral-200);
+        transition: all 0.2s ease;
+        text-align: center;
+        min-height: 200px;
+
+        &:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-primary);
+            background: var(--color-neutral-200);
+        }
+    }
+
+    .mode-title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+    }
+
+    .mode-description {
+        font-size: var(--font-size-sm);
+        color: var(--color-neutral-500);
+        line-height: 1.4;
+    }
 </style>
