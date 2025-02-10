@@ -1,15 +1,18 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, getFirestore, setDoc } from 'firebase/firestore';
 import * as fs from 'fs/promises';
+import dotenv from 'dotenv';
+import * as process from 'process';
 
-// Your Firebase config (same as in your svelte app)
+dotenv.config();
+
 const firebaseConfig = {
-    apiKey: "AIzaSyAd6Hl3f4bH5mlosrdQt6nP-PARj3dwukM", // Replace with your actual config
+    apiKey: process.env.FIREBASE_API_KEY,
     authDomain: "movie-guesser-d87e6.firebaseapp.com",
     projectId: "movie-guesser-d87e6",
     storageBucket: "movie-guesser-d87e6.firebasestorage.app",
     messagingSenderId: "233505942934",
-    appId: "1:233505942934:web:262138ac6a955a189441b7"
+    appId: "1:233505942934:web:c903893266c27ffe9441b7"
 };
 
 const app = initializeApp(firebaseConfig);

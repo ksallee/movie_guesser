@@ -1,41 +1,153 @@
 <script>
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import MovieResult from './MovieResult.svelte';
+	import { gameState, updateGlobalStats, updateQuizProgress, calculateQuestionScore } from '$lib/state/gameState';
+	import { Jumper } from 'svelte-loading-spinners';
+	import { Tween } from 'svelte/motion';
 
-	let movies = [];
-	let currentMovie = $state(null);
-	// set the plot index to a random number between 1 and 4
-	const randomPlotIndex = Math.floor(Math.random() * 4) + 1;
-	let currentPlotIndex = $state(randomPlotIndex);
+	// Props
+	let {
+		movie = null,               // If provided, use this movie instead of fetching
+		plotIndex = null,           // If provided, use this plot index
+		quizMode = false,           // Whether we're in quiz mode
+		onComplete = null,          // Callback for quiz mode when question is complete
+		quizId = null,               // Quiz ID for quiz mode
+		isLastQuestion = false      // Whether this is the last question in quiz mode
+	} = $props();
+
+	plotIndex = plotIndex || Math.floor(Math.random() * 4) + 1;
 	let guess = $state('');
-	let gameState = $state('playing');
+	let guessState = $state('playing');
 	let feedback = $state("");
 	let feedbackColor = $state("var(--color-error)");
+	let wrongAttempts = $state(0);
 	let posterPreloader = $state(null);
 
+	// Score display animations
+	let score = new Tween(0, {duration: 300});
+	let accuracy = new Tween(0, {duration: 300});
+
+	// Update display score/accuracy based on mode
 	onMount(async () => {
-		const response = await fetch('/data/movies.json');
-		const data = await response.json();
-		movies = data.movies;
-		selectRandomMovie();
+		if (!movie && !quizMode) {
+			await fetchRandomMovie();
+		}
+		if (quizMode) {
+			const quizStats = gameState.activeQuizzes[quizId];
+			score.target = quizStats?.score ?? 0;
+			accuracy.target = quizStats?.accuracy ?? 0;
+		} else {
+			score.target = gameState.globalStats.score;
+			accuracy.target = gameState.globalStats.accuracy;
+		}
 	});
 
-	function selectRandomMovie() {
-		const newMovie = movies[Math.floor(Math.random() * movies.length)];
+	async function fetchRandomMovie() {
+		const response = await fetch('/api/movies/random');
+		const newMovie = await response.json();
+		movie = newMovie;
 
-		// Start preloading the poster image
+		// Preload poster
 		if (posterPreloader) {
 			posterPreloader.onload = null;
 			posterPreloader.onerror = null;
 		}
 		posterPreloader = new Image();
-		posterPreloader.src = `https://image.tmdb.org/t/p/w500${newMovie.poster_path}`;
+		posterPreloader.src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
 
-		currentMovie = newMovie;
-		currentPlotIndex = Math.floor(Math.random() * 4) + 1;
-		gameState = 'playing';
+	}
+
+	function updateScore(success, gaveUp = false) {
+		const difficulty = movie.plots[plotIndex].difficulty;
+		let newScore = 0;
+
+		if (success) {
+			// Full points for success
+			newScore = score.current + calculateQuestionScore(difficulty, wrongAttempts);
+		} else if (gaveUp) {
+			// Half points (rounded down) for giving up
+			newScore = score.current - Math.floor(calculateQuestionScore(difficulty, 0) / 2);
+		} else {
+			// Third of points (rounded down) for failing
+			newScore = score.current - Math.floor(calculateQuestionScore(difficulty, 0) / 3);
+		}
+		newScore = Math.max(0, newScore);
+
+		if (quizMode) {
+			// Update quiz stats
+			const updatedStats = {
+				score: newScore,
+				totalAttempts: (gameState.activeQuizzes[quizId]?.totalAttempts ?? 0) + 1,
+			};
+
+			// Only update accuracy on actual failures (not give-ups)
+			if (!gaveUp) {
+				updatedStats.totalQuestionsAnswered = (gameState.activeQuizzes[quizId]?.totalQuestionsAnswered ?? 0) + 1
+				const correctAnswers = success ?
+					(gameState.activeQuizzes[quizId]?.totalQuestionsAnswered ?? 0) * (gameState.activeQuizzes[quizId]?.accuracy ?? 0) / 100 + (success ? 1 : 0) :
+					(gameState.activeQuizzes[quizId]?.totalQuestionsAnswered ?? 0) * (gameState.activeQuizzes[quizId]?.accuracy ?? 0) / 100;
+
+				updatedStats.accuracy = (correctAnswers / updatedStats.totalQuestionsAnswered) * 100;
+			}
+			else {
+				updatedStats.accuracy = gameState.activeQuizzes[quizId]?.accuracy ?? 0;
+			}
+
+			// Update local state
+			score.target = updatedStats.score;
+			accuracy.target = updatedStats.accuracy;
+			// Background sync to DB
+			updateQuizProgress(quizId, updatedStats);
+		} else {
+			// Update global stats
+			const updatedStats = {
+				score: newScore,
+				totalAttempts: gameState.globalStats.totalAttempts + 1,
+			};
+
+			// Only update accuracy on actual failures (not give-ups)
+			if (!gaveUp) {
+				updatedStats.totalQuestionsAnswered = (gameState.activeQuizzes[quizId]?.totalQuestionsAnswered ?? 0) + 1
+				const correctAnswers = success ?
+					(gameState.globalStats.totalQuestionsAnswered * (gameState.globalStats.accuracy / 100)) + 1 :
+					(gameState.globalStats.totalQuestionsAnswered * (gameState.globalStats.accuracy / 100));
+
+				updatedStats.accuracy = (correctAnswers / updatedStats.totalQuestionsAnswered) * 100;
+			}
+			else {
+				updatedStats.accuracy = gameState.globalStats.accuracy;
+			}
+
+			// Update local state
+			score.target = updatedStats.score;
+			accuracy.target = updatedStats.accuracy;
+			// Background sync to DB
+			updateGlobalStats(updatedStats);
+		}
+	}
+
+	async function handleNext() {
+		if (quizMode) {
+			if (onComplete) {
+				onComplete();
+			}
+			guess = '';
+			guessState = 'playing';
+			feedback = '';
+			wrongAttempts = 0;
+		} else {
+			await selectRandomMovie();
+		}
+	}
+
+	async function selectRandomMovie() {
+		await fetchRandomMovie();
+		plotIndex = Math.floor(Math.random() * 4) + 1;
+		guessState = 'playing';
 		guess = '';
 		feedback = '';
+		wrongAttempts = 0;
 	}
 
 	function normalizeString(str) {
@@ -48,21 +160,24 @@
 			.replace(/ (a|an|the) /g, ' ');
 	}
 
-	function setDifficulty(index) {
-		feedback = '';
-		currentPlotIndex = index;
-	}
-
 	function fail(theFeedback, color) {
 		feedback = theFeedback || "FAILED";
 		feedbackColor = color || "var(--color-error)";
 		guess = "";
-		if (currentPlotIndex > 0) {
-			currentPlotIndex--;
+		wrongAttempts++;
+
+		if (plotIndex > 0) {
+			plotIndex--;
 		}
+
 		setTimeout(() => {
 			feedback = "";
 		}, 1000);
+
+		// Only update score/accuracy if it's a real fail (not "YOU'RE CLOSE!")
+		if (theFeedback === "FAILED") {
+			updateScore(false);
+		}
 	}
 
 	function checkGuess() {
@@ -72,7 +187,7 @@
 		}
 
 		const normalizedGuess = normalizeString(guess);
-		const normalizedTitle = normalizeString(currentMovie.title);
+		const normalizedTitle = normalizeString(movie.title);
 
 		// Split into words for partial matching
 		const guessWords = normalizedGuess.split(' ');
@@ -105,22 +220,23 @@
 				break;
 			}
 		}
+
 		const missingWords = titleWords.length - matchCount;
-		if (allWordsMatch && titleWords.length > 3 && missingWords <= 1) {
-			gameState = 'success';
-			return;
-		}
-		else if (allWordsMatch && titleWords.length <= 3 && missingWords === 0) {
-			gameState = 'success';
+		if ((allWordsMatch && titleWords.length > 3 && missingWords <= 1) ||
+			(allWordsMatch && titleWords.length <= 3 && missingWords === 0)) {
+			guessState = 'success';
+			updateScore(true);
 			return;
 		}
 
 		// Franchise pattern matching
 		const franchiseMatch = normalizedTitle.match(/^(.+?)(?::\s*)?(?:part \d+|[123]\b|\s+\d+)?$/);
 		if (franchiseMatch && normalizeString(franchiseMatch[1]) === normalizedGuess) {
-			gameState = 'success';
+			guessState = 'success';
+			updateScore(true);
 			return;
 		}
+
 		let theFeedback = "FAILED";
 		let color = "var(--color-error)";
 		if ((matchCount >= 2 && titleWords.length > 3) || (matchCount === 1 && titleWords.length <= 3)) {
@@ -132,115 +248,87 @@
 	}
 
 	function giveUp() {
-		gameState = 'gaveup';
-	}
-
-	function playAgain() {
-		selectRandomMovie();
+		guessState = 'gaveup';
+		updateScore(false, true); // Pass true for gaveUp parameter
 	}
 </script>
 
-{#if currentMovie}
-	<div class="content" in:fade>
-		{#if gameState === 'playing'}
-			<div class="game-status">
-				{#if feedback}
-					<div class="feedback" in:fade style="color: {feedbackColor}">
-						{feedback}
-					</div>
-				{/if}
-			</div>
-			<div class="plot-container">
-				<div class="plot-difficulty">
-					<span class="difficulty-label">Choose level:</span>
-					{#each Array(5) as _, i}
-						<button
-							class="star-button"
-							onclick={() => setDifficulty(i)}
-						>
-                <span>
-									{#if i < currentMovie.plots[currentPlotIndex].difficulty}
-										<img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
-									{:else}
-										<img  class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
-									{/if}
-
-                </span>
-						</button>
-					{/each}
-				</div>
-				{#key currentMovie.plots[currentPlotIndex].plot}
-					<div class="plot" in:fade={{duration:800}}>
-						{currentMovie.plots[currentPlotIndex].plot}
-					</div>
-				{/key}
-			</div>
-
-			<div class="input-area">
-				<input
-					type="text"
-					bind:value={guess}
-					placeholder="My guess is..."
-					onkeydown={(e) => e.key === 'Enter' && checkGuess()}
-				/>
-				<div class="button-group">
-					<button class="button secondary-button" onclick={selectRandomMovie} title="Get another random movie">
-						<img src="/images/refresh.svg" alt="Refresh" class="refresh-icon" />
-					</button>
-					<button class="button primary-button" onclick={checkGuess}>
-						Submit Guess
-					</button>
-					<button class="button error-button" onclick={giveUp}>
-						Give Up
-					</button>
-				</div>
-			</div>
-		{:else}
-			<div class="result" in:fade={{duration:800}}>
-				{#if gameState === 'success'}
-					<div class="success-message" in:fade|global={{delay: 300, duration: 500}}>
-						Congratulations! You got it right!
-					</div>
-				{/if}
-				<h2>{currentMovie.title}</h2>
-				<h3>{currentMovie.release_date.substring(0, 4)}</h3>
-				<img
-					src={posterPreloader?.src || `https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
-					alt={currentMovie.title}
-					class="movie-poster"
-				/>
-				<p class="overview">{currentMovie.overview.substring(0, 350)}</p>
-				<div class="result-actions">
-					{#if currentMovie.trailer}
-						<a
-							href={currentMovie.trailer}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="button secondary-button"
-						>
-							Youtube Trailer
-						</a>
-					{/if}
-					<a
-						href={`https://www.imdb.com/title/${currentMovie.imdb_id}`}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="button secondary-button"
-					>
-						View on IMDB
-					</a>
-
-					<button class="button primary-button" onclick={playAgain}>
-						Play Again
-					</button>
-				</div>
+{#if score.target !== -1 && accuracy.target !== -1}
+	<div class="game-status" in:fade>
+		<div class="stats">
+			<span>Score: {Math.floor(score.current)}</span>
+			<span>Accuracy: {accuracy.current.toFixed(1)}%</span>
+		</div>
+		{#if feedback}
+			<div class="feedback" in:fade style="color: {feedbackColor}">
+				{feedback}
 			</div>
 		{/if}
 	</div>
-{:else}
-	<div class="loading">Loading...</div>
 {/if}
 
+{#if movie}
+		<div class="content" in:fade>
+			{#if guessState === 'playing'}
+				<div class="plot-container">
+					<div class="plot-difficulty">
+						<span class="difficulty-label">Level:</span>
+						{#each Array(5) as _, i}
+							<button class="star-button">
+								<span>
+									{#if i < movie.plots[plotIndex].difficulty}
+										<img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
+									{:else}
+										<img class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
+									{/if}
+								</span>
+							</button>
+						{/each}
+					</div>
+					{#key movie.plots[plotIndex].plot}
+						<div class="plot" in:fade={{duration:800}}>
+							{movie.plots[plotIndex].plot}
+						</div>
+					{/key}
+				</div>
+
+				<div class="input-area">
+					<input
+						type="text"
+						bind:value={guess}
+						placeholder="My guess is..."
+						onkeydown={(e) => e.key === 'Enter' && checkGuess()}
+					/>
+					<div class="button-group">
+						{#if !quizMode}
+							<button class="button secondary-button" onclick={selectRandomMovie} title="Get another random movie">
+								<img src="/images/refresh.svg" alt="Refresh" class="refresh-icon" />
+							</button>
+						{/if}
+						<button class="button primary-button" onclick={checkGuess}>
+							Submit Guess
+						</button>
+						<button class="button error-button" onclick={giveUp}>
+							Give Up
+						</button>
+					</div>
+				</div>
+			{:else}
+				<MovieResult
+					movie={movie}
+					gameState={guessState}
+					onPlayAgain={!quizMode ? selectRandomMovie : undefined}
+					onNext={quizMode ? handleNext : undefined}
+					isLastQuestion={isLastQuestion}
+					quizId={quizId}
+				/>
+			{/if}
+		</div>
+{:else}
+	<div class="loading">
+		<Jumper size={80} color={"var(--color-primary)"} unit="px" duration="1s"/>
+	</div>
+{/if}
 
 <style>
 	.content {
@@ -298,17 +386,13 @@
 			height: 24px;
 		}
 	}
+
 	.star-button {
 		background: none;
 		border: none;
 		padding: 0;
 		cursor: pointer;
 	}
-
-	.star-button:hover {
-		transform: scale(1.2);
-	}
-
 
 	.feedback {
 		position: fixed;
@@ -347,6 +431,7 @@
 			max-width: 100%;
 		}
 	}
+
 	.plot {
 		font-size: var(--font-size-xl);
 		font-weight: var(--font-weight-normal);
@@ -378,6 +463,7 @@
 		border-radius: var(--radius-lg);
 		transition: all 0.2s ease;
 	}
+
 	input::placeholder {
 		color: var(--color-neutral-400);
 	}
@@ -399,54 +485,16 @@
 		}
 	}
 
-	.result {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-		align-items: center;
-	}
-
-	.movie-poster {
-		max-width: 270px;
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
-		object-fit: cover;
-	}
-
-	.overview {
-		max-width: 600px;
-		color: var(--color-secondary);
-	}
-
-	.result-actions {
-		display: flex;
-		gap: var(--spacing-md);
-
-		@media (max-width: 768px) {
-			flex-direction: column;
-			gap: var(--spacing-md);
-		}
-	}
-
-	.success-message {
-		color: var(--color-success);
-		font-size: var(--font-size-xl);
-		font-weight: var(--font-weight-medium);
-	}
-
-	@keyframes fadeInOut {
-		0% {
-			opacity: 0;
-			transform: translateY(-10px);
-		}
-		100% {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
 	.refresh-icon {
 		width: 36px;
 		height: 36px;
+	}
+
+	.stats {
+		display: flex;
+		gap: var(--spacing-xl);
+		font-size: var(--font-size-lg);
+		color: var(--color-primary);
+		margin-bottom: var(--spacing-md);
 	}
 </style>

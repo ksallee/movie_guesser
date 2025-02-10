@@ -1,14 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth'; // Import auth and anonymous sign-in
+import { FIREBASE_API_KEY } from '$env/static/private';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAd6Hl3f4bH5mlosrdQt6nP-PARj3dwukM",
+  apiKey: FIREBASE_API_KEY,
   authDomain: "movie-guesser-d87e6.firebaseapp.com",
   projectId: "movie-guesser-d87e6",
   storageBucket: "movie-guesser-d87e6.firebasestorage.app",
   messagingSenderId: "233505942934",
-  appId: "1:233505942934:web:262138ac6a955a189441b7"
+  appId: "1:233505942934:web:c903893266c27ffe9441b7"
 };
 
 const app = initializeApp(firebaseConfig);

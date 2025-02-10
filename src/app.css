@@ -2,7 +2,7 @@
   /* Colors - Using a game-friendly palette */
   --color-bg: #1a1b26;
   --color-text: #a9b1d6;
-  --color-primary: #7aa2f7;
+  --color-primary: #6e9eff;
   --color-primary-light: #89b4fa;
   --color-primary-dark: #5879c5;
   --color-secondary: #9399b2;
@@ -10,7 +10,9 @@
   --color-error: #f7768e;
   --color-error-dark: #db4b4b;
   --color-success: #9ece6a;
+  --color-success-dark: #5cb85c;
   --color-warning: #e0af68;
+  --color-warning-dark: #d39e00;
   --color-neutral-50: #1a1b26;
   --color-neutral-100: #24283b;
   --color-neutral-200: #414868;
@@ -126,6 +128,14 @@ a {
   background: var(--color-error-dark);
 }
 
+.success-button {
+  background: var(--color-success);
+  color: var(--color-neutral-50);
+}
+.success-button:hover {
+  background: var(--color-success-dark);
+}
+
 /* Input styles */
 input {
   background: var(--color-neutral-100);
@@ -148,11 +158,9 @@ input::placeholder {
 
 /* Utility classes */
 .loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100vw;
+  align-content: center;
+  margin: auto;
+  height: 100%;
   font-size: var(--font-size-xl);
-  color: var(--color-primary);
+  color: var(--color-neutral-400);
 }

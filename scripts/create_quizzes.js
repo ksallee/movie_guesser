@@ -1,12 +1,9 @@
-// scripts/create_quizzes.js (Revised - Model Choice: OpenAI/Gemini, Simplified OpenAI Zod, Full File)
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
-import fs from 'fs/promises';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { initializeApp } from 'firebase/app';
-import { getVertexAI, getGenerativeModel, Schema } from 'firebase/vertexai'; // Import Schema for Gemini
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import * as process from 'process';
 
 dotenv.config();
@@ -17,221 +14,219 @@ const openai = new OpenAI({
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-    apiKey: "AIzaSyAd6Hl3f4bH5mlosrdQt6nP-PARj3dwukM", // <--- Your Firebase API Key
+    apiKey: process.env.FIREBASE_API_KEY,
     authDomain: "movie-guesser-d87e6.firebaseapp.com",
     projectId: "movie-guesser-d87e6",
     storageBucket: "movie-guesser-d87e6.firebasestorage.app",
     messagingSenderId: "233505942934",
-    appId: "1:233505942934:web:262138ac6a955a189441b7"
+    appId: "1:233505942934:web:c903893266c27ffe9441b7"
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const quizzesCollection = collection(db, 'quizzes');
+const moviesCollection = collection(db, 'movies');
 
-// --- Zod Schema for Quiz Batch Output (OBJECT ROOT) - For OpenAI (SIMPLIFIED) ---
-const QuizSchemaOpenAI = z.object({ // Root is now an object
-    quizzes: z.array(      // Property "quizzes" is an array
+// --- Zod Schema for Quiz Output
+const QuizSchemaOpenAI = z.object({
+    quizzes: z.array(
       z.object({
           title: z.string(),
-          difficulty: z.number(), // Simplified: Removed .min() and .max()
+          difficulty: z.number(),
           questions: z.array(
             z.object({
-                movie_id: z.number(),
-                plot_index: z.number(), // Simplified: Removed .min() and .max()
+                movie_title: z.string(),
+                plot_index: z.number()
             })
-          ) // Simplified: Removed .min() and .max() for array length - relying on prompt
+          )
       })
     )
 });
 
-// --- JSON Schema for Quiz Output (OBJECT ROOT) - For Gemini (No Changes) ---
-const QuizSchemaGemini = Schema.object({
-    properties: {
-        quizzes: Schema.array({
-            items: Schema.object({
-                properties: {
-                    title: Schema.string(),
-                    difficulty: Schema.number(),
-                    questions: Schema.array({
-                        items: Schema.object({
-                            properties: {
-                                movie_id: Schema.number(),
-                                plot_index: Schema.number()
-                            },
-                            optionalProperties: []
-                        })
-                    })
-                },
-                optionalProperties: []
-            })
-        })
-    }
-});
-
-
-async function generateQuizzes(numQuizzes, outputDestination, modelType = 'openai') { // Added modelType param, default openai
-    console.log(`Generating ${numQuizzes} quizzes with ${modelType} in batches (single system prompt), output to: ${outputDestination}`);
-
-    let model;
-    if (modelType === 'gemini') {
-        const vertexAI = getVertexAI(firebaseApp);
-        model = getGenerativeModel(vertexAI, {
-            model: "gemini-1.5-flash",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: QuizSchemaGemini // Use Gemini Schema
-            }
-        });
-    } else if (modelType === 'openai') {
-        model = openai; // Use initialized OpenAI client
-    } else {
-        throw new Error(`Invalid model type: ${modelType}. Choose 'openai' or 'gemini'.`);
-    }
-
-
+async function getExistingQuizzes() {
     try {
-        const moviesData = JSON.parse(await fs.readFile('static/data/movies.json', 'utf-8'));
-        const allMovies = moviesData.movies;
-        // Reduce movie data
-        const allMoviesReduced = allMovies.map(movie => ({
-            id: movie.id,
-            title: movie.title,
-            release_date: movie.release_date,
-            plots: movie.plots
+        const snapshot = await getDocs(quizzesCollection);
+        return snapshot.docs.map(doc => ({
+            title: doc.data().title,
+            movies: doc.data().questions.map(q => q.movie_id)
         }));
-
-        const quizzesPerBatch = 15;
-        let generatedQuizCount = 0;
-        let allQuizzes = [];
-
-        // --- System Prompt (Sent only ONCE) ---
-        const systemPromptContent = `
-You are an expert quiz creator. You will generate movie quizzes in batches. I will ask for quizzes in user prompts, and you will respond with a JSON object containing movie quizzes.
-Do not provide same quizzes twice!
-
-You will use movies from the following list to create your quizzes:
-${JSON.stringify(allMoviesReduced, null, 2)}
-
-When generating quizzes:
-- Try to order them by "virality", so the most popular quizzes come first (within each batch and overall if possible).
-- Make sure to vary the difficulty levels from 1 to 5 across quizzes.
-- Be creative and engaging with quiz titles and themes! You can make quizzes based on genre, decades, directors, actors, etc.
-- Ensure that each quiz has between 10 and 20 questions.
-- For each question, the 'plot_index' should be a number between 1 and 5.
-
-        `;
-
-        while (generatedQuizCount < numQuizzes) {
-            const currentBatchSize = Math.min(quizzesPerBatch, numQuizzes - generatedQuizCount); // Adjust batch size
-
-            if (currentBatchSize <= 0) break; // No more quizzes to generate
-
-            // --- User Prompt for each batch ---
-            const userPromptContent = `Generate ${currentBatchSize} movie quizzes.
-            Each quiz in the "quizzes" array MUST have:
-- A "title":  A catchy and engaging title for the quiz. Keep it short and concise.
-- A "difficulty":  A number from 1 to 5 representing the quiz difficulty (1=Easy, 5=Hard). Vary the difficulty across quizzes within each batch and across batches.
-- A "questions" array:  This array should contain 10-20 movie questions PER QUIZ. NO LESS THAN 10 AND NO MORE THAN 20! Each question is represented as an object with:
-- "movie_id":  The ID of a movie from the provided movie list.
-- "plot_index": A number between 1 and 5, representing the plot index of the plot you chose to keep for this quiz question.
-You can have the same themes across quizzes, but with different levels of difficulty (plots), and you can vary the movies a bit too.
-            `;
-
-            const messages = [];
-            const systemRole = modelType === 'openai' ? "system" : "model"
-            if (generatedQuizCount === 0) {
-                // For the first batch, include the system prompt
-                messages.push({ role: systemRole, content: systemPromptContent });
-            }
-            messages.push({ role: "user", content: userPromptContent }); // Add user prompt for every batch
-
-            console.log(`--- Sending Prompt to ${modelType} for batch of ${currentBatchSize} quizzes ---`);
-
-            let responseData;
-            if (modelType === 'openai') {
-                const completion = await model.beta.chat.completions.parse({ // Use OpenAI client
-                    model: "gpt-4o",
-                    messages: messages,
-                    response_format: zodResponseFormat(QuizSchemaOpenAI, "response") // Use OpenAI Zod Schema
-                });
-                responseData = completion.choices[0].message.parsed;
-            } else if (modelType === 'gemini') {
-                const geminiPrompt = messages.find(msg => msg.role === 'user')?.content || messages[0].content; // Extract user prompt content
-                if (!geminiPrompt) {
-                    console.error("Error: No user prompt found for Gemini.");
-                    return;
-                }
-
-                const geminiResult = await model.generateContent({
-                    contents: [{
-                        parts: [{ text: geminiPrompt }] // Pass prompt as text in parts array
-                    }]
-                });
-
-
-                const responseText = geminiResult.response.text();
-                try {
-                    responseData = JSON.parse(responseText); // Parse Gemini response
-                } catch (e) {
-                    console.error("Error parsing JSON response from Gemini:", e);
-                    console.error("Raw JSON response that failed to parse (Gemini):", responseText);
-                    return;
-                }
-                // Basic validation for Gemini output (as schema validation is not directly enforced)
-                if (!responseData || !responseData.quizzes || !Array.isArray(responseData.quizzes)) {
-                    console.error("Gemini output does not match expected QuizSchemaGemini: Missing 'quizzes' array.");
-                    return;
-                }
-            }
-
-
-            const batchQuizzes = responseData.quizzes; // Access quizzes array (same for both models based on schema)
-
-
-            console.log(`--- Received and Parsed JSON Response from ${modelType} for batch of ${currentBatchSize} quizzes ---`);
-            // console.log("Parsed Batch Quizzes:", JSON.stringify(batchQuizzes, null, 2)); // Optional: Log batch quizzes
-
-            allQuizzes = allQuizzes.concat(batchQuizzes); // Concatenate batch quizzes
-            generatedQuizCount += batchQuizzes.length;
-
-            console.log(`Generated ${generatedQuizCount}/${numQuizzes} quizzes so far.`);
-        }
-
-
-        // --- Process and Output Quizzes ---
-        if (outputDestination === 'firestore') {
-            console.log("Uploading quizzes to Firestore...");
-            const uploadPromises = allQuizzes.map(async (quiz, index) => {
-                const quizDocRef = doc(quizzesCollection);
-                await setDoc(quizDocRef, quiz);
-                console.log(`Uploaded quiz ${index + 1}: ${quiz.title}`);
-            });
-            await Promise.all(uploadPromises);
-            console.log("All quizzes uploaded to Firestore.");
-        } else { // outputDestination === 'local'
-            console.log("Outputting quizzes to console (local):");
-            console.log(JSON.stringify({ quizzes: allQuizzes }, null, 2));
-            // await fs.writeFile('quizzes_output.json', JSON.stringify({ quizzes: allQuizzes }, null, 2), 'utf-8');
-            // console.log("Quizzes saved to quizzes_output.json");
-        }
-
     } catch (error) {
-        console.error('Error during quiz generation:', error);
-        if (error instanceof z.ZodError && modelType === 'openai') {
-            console.error("Zod Validation Error Details (OpenAI):", error.errors);
-        } else {
-            console.error(`API Error Details (${modelType}):`, error);
-        }
+        console.error('Error fetching existing quizzes:', error);
+        return [];
     }
 }
 
-async function main() {
-    const numQuizzes = parseInt(process.argv[2]) || 5;
-    const outputDestination = process.argv[3] === 'firestore' ? 'firestore' : 'local';
-    const modelType = process.argv[4] === 'gemini' ? 'gemini' : 'openai'; // Default to openai, added modelType arg
+async function getMoviesMapping() {
+    try {
+        const snapshot = await getDocs(moviesCollection);
+        const titleToId = new Map();
+        const idToMovie = new Map();
 
-    await generateQuizzes(numQuizzes, outputDestination, modelType); // Pass modelType to generateQuizzes
+        snapshot.docs.forEach(doc => {
+            const movie = doc.data();
+            const normalizedTitle = normalizeTitle(movie.title);
+            titleToId.set(normalizedTitle, movie.id);
+            idToMovie.set(movie.id, movie);
+        });
+
+        return { titleToId, idToMovie };
+    } catch (error) {
+        console.error('Error fetching movies:', error);
+        return { titleToId: new Map(), idToMovie: new Map() };
+    }
+}
+
+function normalizeTitle(title) {
+    return title.toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+}
+
+async function generateQuizzes(numQuizzes, existingQuizzes, allMovies) {
+    console.log(`Generating ${numQuizzes} quizzes in one call...`);
+
+    // Create a simplified movie list for the LLM
+    const moviesList = allMovies.map(movie => ({
+        title: movie.title,
+        release_date: movie.release_date,
+        overview: movie.overview
+    }));
+
+    // Format existing quizzes for context
+    const existingQuizzesContext = existingQuizzes.map(q =>
+      `"${q.title}" (using movies: ${q.movies.join(', ')})`
+    ).join('\n');
+
+    const promptContent = `
+You are an expert quiz creator. Generate ${numQuizzes} movie quizzes using movies from the provided list.
+Each quiz should have its own unique theme and not overlap with existing quizzes or with other quizzes in this batch.
+
+Available movies:
+${JSON.stringify(moviesList, null, 2)}
+
+Existing quizzes:
+${existingQuizzesContext || 'None'}
+
+
+Generate ${numQuizzes} quizzes. Each quiz MUST have:
+- A unique, catchy, and engaging title using themes like genre, decade, director, actor, etc.
+- A difficulty rating from 1 to 5 (1=Easy, 5=Hard)
+- 17-25 questions to ensure we have enough valid questions
+- Generate ${numQuizzes} movie quizzes!!
+- For each question, specify:
+  - movie_title: The EXACT title of a movie from the list (this is crucial!)
+  - plot_index: A number from 1-5 for plot difficulty
+- DO NOT INCLUDE TITLES THAT ARE NOT IN THE LIST!
+
+Important: 
+- Only use movie titles that EXACTLY match titles from the provided list!
+- Each quiz must have a distinct theme from others in this batch
+- Ensure variety in difficulty levels across quizzes
+`;
+
+    const messages = [
+        { role: "user", content: promptContent }
+    ];
+
+    try {
+        const completion = await openai.beta.chat.completions.parse({
+            model: "gpt-4o",
+            messages: messages,
+            response_format: zodResponseFormat(QuizSchemaOpenAI, "response")
+        });
+
+        return completion.choices[0].message.parsed.quizzes;
+    } catch (error) {
+        console.error('Error generating quizzes:', error);
+        return [];
+    }
+}
+
+async function validateAndTransformQuiz(quiz, titleToId, idToMovie) {
+    const validQuestions = [];
+
+    for (const question of quiz.questions) {
+        const normalizedTitle = normalizeTitle(question.movie_title);
+        const movieId = titleToId.get(normalizedTitle);
+
+        if (movieId && idToMovie.get(movieId)) {
+            validQuestions.push({
+                movie_id: movieId,
+                plot_index: question.plot_index
+            });
+        } else {
+            console.log(`Warning: Movie not found - "${question.movie_title}"`);
+        }
+    }
+
+    if (validQuestions.length < 10) {
+        console.log(`Quiz "${quiz.title}" has insufficient valid questions (${validQuestions.length})`);
+        return null;
+    }
+
+    return {
+        title: quiz.title,
+        difficulty: quiz.difficulty,
+        questions: validQuestions
+    };
+}
+
+async function main() {
+    const numQuizzes = parseInt(process.argv[2]) || 1;
+    if (numQuizzes > 10) {
+        console.error('Please request 10 or fewer quizzes at a time to ensure quality.');
+        return;
+    }
+
+    try {
+        // Get initial data
+        const [existingQuizzes, { titleToId, idToMovie }] = await Promise.all([
+            getExistingQuizzes(),
+            getMoviesMapping()
+        ]);
+
+        const moviesData = Array.from(idToMovie.values());
+
+        // Generate all quizzes in one call
+        console.log('Making API call to generate quizzes...');
+        const generatedQuizzes = await generateQuizzes(numQuizzes, existingQuizzes, moviesData);
+
+        if (!generatedQuizzes.length) {
+            console.error('Failed to generate quizzes');
+            return;
+        }
+
+        // Process each generated quiz
+        let successfulQuizzes = 0;
+
+        for (const quiz of generatedQuizzes) {
+            console.log(`\nProcessing quiz: ${quiz.title}`);
+
+            // Validate and transform the quiz
+            const validQuiz = await validateAndTransformQuiz(quiz, titleToId, idToMovie);
+            if (!validQuiz) {
+                console.error('Quiz validation failed, skipping...');
+                continue;
+            }
+
+            try {
+                // Upload to Firestore
+                const quizDocRef = doc(quizzesCollection);
+                await setDoc(quizDocRef, validQuiz);
+                console.log(`Successfully created quiz: ${validQuiz.title}`);
+                successfulQuizzes++;
+            } catch (error) {
+                console.error('Error uploading quiz:', error);
+            }
+        }
+
+        console.log(`\nQuiz generation complete.`);
+        console.log(`Successfully generated ${successfulQuizzes}/${numQuizzes} quizzes.`);
+
+    } catch (error) {
+        console.error('Error in main:', error);
+    }
 }
 
 main();

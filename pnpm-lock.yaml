@@ -55,6 +55,9 @@ devDependencies:
   svelte:
     specifier: ^5.0.0
     version: 5.19.7
+  svelte-loading-spinners:
+    specifier: ^0.3.6
+    version: 0.3.6
   vite:
     specifier: ^6.0.0
     version: 6.1.0
@@ -2269,6 +2272,10 @@ packages:
       postcss: 8.5.1
       postcss-scss: 4.0.9(postcss@8.5.1)
       svelte: 5.19.7
+    dev: true
+
+  /svelte-loading-spinners@0.3.6:
+    resolution: {integrity: sha512-mthHQ2TwiwzTWzbFry3CBnVEfzqPOD9WkVw84OfSYzHRq6N9wgQ+yv37u81uPeuLU/ZOIPqhujpXquB1aol5ZQ==}
     dev: true
 
   /svelte@5.19.7:
