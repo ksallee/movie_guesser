@@ -44,7 +44,7 @@
         margin: 0 auto;
         padding: var(--spacing-xl);
 				@media (max-width: 768px) {
-					padding: var(--spacing-sm);
+					padding: var(--spacing-sm) 0; /* Only vertical padding */
 					gap: var(--spacing-lg);
 				}
     }
