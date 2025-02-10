@@ -1,27 +1,31 @@
 <script>
 	import { fade } from 'svelte/transition';
 	import { goto } from '$app/navigation';
-	import { completeQuiz } from '$lib/state/gameState.js';
-	import {onMount} from 'svelte';
+	import { gameState, completeQuiz } from '$lib/state/gameState.js';
 
 	let {
 		movie,
-		gameState = 'success',
+		gameState: resultState = 'success',
 		onPlayAgain,
 		onNext = undefined,
-		isLastQuestion = false,
-		quizId = undefined
 	} = $props();
 
+	$effect(() => {
+		if (resultState === 'success' && gameState.currentQuiz?.isLastQuestion) {
+			handleQuizCompletion();
+		}
+	});
 
-	async function goToResults() {
-		await completeQuiz(quizId);
-		goto(`/quizzes/${quizId}/result`);
+	async function handleQuizCompletion() {
+		if (!gameState.currentQuiz?.quizId) return;
+
+		await completeQuiz(gameState.currentQuiz.quizId);
+		goto(`/quizzes/${gameState.currentQuiz.quizId}/result`);
 	}
 </script>
 
 <div class="result" in:fade={{duration:800}}>
-	{#if gameState === 'success'}
+	{#if resultState === 'success'}
 		<div class="success-message" in:fade|global={{delay: 300, duration: 500}}>
 			Congratulations! You got it right!
 		</div>
@@ -37,10 +41,10 @@
 	<p class="overview">{movie.overview}</p>
 
 	<div class="result-actions">
-		{#if isLastQuestion}
+		{#if gameState.currentQuiz?.isLastQuestion}
 			<button
 				class="button success-button"
-				onclick={async() => await goToResults()}
+				onclick={handleQuizCompletion}
 			>
 				See Results
 			</button>

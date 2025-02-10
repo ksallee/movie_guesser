@@ -20,6 +20,19 @@ export const gameState = new PersistentState({
     completedQuizzes: {
         type: 'localStorage',
         value: {} // { quizId: { score, accuracy, totalAttempts, totalQuestionsAnswered } }
+    },
+    // New: Current quiz state management
+    currentQuiz: {
+        type: 'localStorage',
+        value: {
+            quizId: null,
+            quiz: null,
+            currentQuestionIndex: 0,
+            totalQuestions: 0,
+            currentMovie: null,
+            currentQuestion: null,
+            isLastQuestion: false
+        }
     }
 });
 
@@ -57,6 +70,71 @@ export async function syncGlobalStats() {
     } catch (error) {
         console.error('Error syncing global stats:', error);
     }
+}
+
+export async function initializeQuiz(quizId, quizData) {
+    // Initialize quiz state
+    gameState.currentQuiz = {
+        quizId,
+        quiz: quizData,
+        currentQuestionIndex: gameState.activeQuizzes[quizId]?.currentQuestionIndex || 0,
+        totalQuestions: quizData.questions.length,
+        currentMovie: null,
+        currentQuestion: null,
+        isLastQuestion: false
+    };
+
+    // Update current question and movie
+    updateCurrentQuestion();
+
+    // Initialize quiz progress if needed
+    if (!gameState.activeQuizzes[quizId]) {
+        gameState.activeQuizzes[quizId] = {
+            currentQuestionIndex: 0,
+            score: 0,
+            accuracy: 0,
+            totalAttempts: 0,
+            totalQuestionsAnswered: 0
+        };
+    }
+}
+
+export function updateCurrentQuestion() {
+    const { quiz, currentQuestionIndex, totalQuestions } = gameState.currentQuiz;
+
+    if (!quiz || currentQuestionIndex >= totalQuestions) return;
+
+    const currentQuestion = quiz.questions[currentQuestionIndex];
+    const currentMovie = quiz.movies[currentQuestion.movie_id];
+
+    gameState.currentQuiz = {
+        ...gameState.currentQuiz,
+        currentQuestion,
+        currentMovie,
+        isLastQuestion: currentQuestionIndex === totalQuestions - 1
+    };
+}
+
+export function advanceQuestion() {
+    const { quizId, currentQuestionIndex, totalQuestions } = gameState.currentQuiz;
+
+    if (currentQuestionIndex >= totalQuestions - 1) return;
+
+    // Update both current quiz and active quizzes state
+    const newIndex = currentQuestionIndex + 1;
+
+    gameState.currentQuiz = {
+        ...gameState.currentQuiz,
+        currentQuestionIndex: newIndex
+    };
+
+    gameState.activeQuizzes[quizId] = {
+        ...gameState.activeQuizzes[quizId],
+        currentQuestionIndex: newIndex
+    };
+
+    // Update current question and movie
+    updateCurrentQuestion();
 }
 
 export async function getQuizProgress(quizId) {

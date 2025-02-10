@@ -14,7 +14,7 @@ const openai = new OpenAI({
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY,
+    apiKey: process.env.PUBLIC_FIREBASE_API_KEY,
     authDomain: "movie-guesser-d87e6.firebaseapp.com",
     projectId: "movie-guesser-d87e6",
     storageBucket: "movie-guesser-d87e6.firebasestorage.app",

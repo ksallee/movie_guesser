@@ -1,10 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth'; // Import auth and anonymous sign-in
-import { FIREBASE_API_KEY } from '$env/static/private';
+import { PUBLIC_FIREBASE_API_KEY } from '$env/static/public';
 
 const firebaseConfig = {
-  apiKey: FIREBASE_API_KEY,
+  apiKey: PUBLIC_FIREBASE_API_KEY,
   authDomain: "movie-guesser-d87e6.firebaseapp.com",
   projectId: "movie-guesser-d87e6",
   storageBucket: "movie-guesser-d87e6.firebasestorage.app",

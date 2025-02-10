@@ -19,6 +19,13 @@
 			event.preventDefault();
 		}
 	}
+
+	function getQuizStatus(quiz) {
+		if (gameState.completedQuizzes[quiz.id]) {
+			return 'completed';
+		}
+		return gameState.activeQuizzes[quiz.id] ? 'in-progress' : 'not-started';
+	}
 </script>
 
 <div class="quizzes-container" in:fade>
@@ -29,9 +36,10 @@
 	{:else}
 		<div class="quizzes-grid">
 			{#each quizzes as quiz (quiz.id)}
+				{@const status = getQuizStatus(quiz)}
 				<a
 					href={`/quizzes/${quiz.id}`}
-					class="quiz-card {gameState.completedQuizzes[quiz.id] ? 'completed' : ''}"
+					class="quiz-card {status}"
 					onclick={(e) => handleQuizClick(e, quiz)}
 					in:fade
 				>
@@ -55,11 +63,34 @@
 							<span class="quiz-questions">{quiz.questions.length} Questions</span>
 						</div>
 
-						{#if gameState.completedQuizzes[quiz.id]}
+						{#if status === 'completed'}
 							<div class="quiz-completed">
 								<span class="success">Completed</span>
-								<span>Score: {gameState.completedQuizzes[quiz.id].score || 0}</span>
-								<span>Accuracy: {gameState.completedQuizzes[quiz.id].accuracy.toFixed(1) || 0}%</span>
+								<div class="progress-details">
+									<span>Score: {gameState.completedQuizzes[quiz.id].score || 0}</span>
+									<span>Accuracy: {gameState.completedQuizzes[quiz.id].accuracy.toFixed(1) || 0}%</span>
+								</div>
+								<div class="progress-bar">
+									<div
+										class="progress-fill success"
+										style="width: 100%"
+									></div>
+								</div>
+							</div>
+						{:else if status === 'in-progress'}
+							<div class="quiz-progress">
+								<span class="in-progress">In Progress</span>
+								<div class="progress-details">
+									<span>Question {(gameState.activeQuizzes[quiz.id].currentQuestionIndex + 1)} of {quiz.questions.length}</span>
+									<span>Score: {gameState.activeQuizzes[quiz.id].score || 0}</span>
+									<span>Accuracy: {gameState.activeQuizzes[quiz.id].accuracy?.toFixed(1) || 0}%</span>
+								</div>
+								<div class="progress-bar">
+									<div
+										class="progress-fill"
+										style="width: {((gameState.activeQuizzes[quiz.id].currentQuestionIndex + 1) / quiz.questions.length) * 100}%"
+									></div>
+								</div>
 							</div>
 						{/if}
 					</div>
@@ -122,10 +153,12 @@
 	}
 
 	.quiz-card.completed {
-		background: var(--color-neutral-50);
-		border-color: var(--color-neutral-200);
+		border-color: var(--color-success);
 		cursor: not-allowed;
-		opacity: 0.8;
+	}
+
+	.quiz-card.in-progress {
+		border-color: var(--color-primary-light);
 	}
 
 	.quiz-top {
@@ -143,7 +176,7 @@
 	}
 
 	.completed .quiz-title {
-		color: var(--color-neutral-400);
+		color: var(--color-success);
 	}
 
 	.quiz-bottom {
@@ -173,16 +206,45 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.quiz-completed {
+	.quiz-completed, .quiz-progress {
 		display: flex;
-		flex-direction: row;
+		flex-direction: column;
 		gap: var(--spacing-xs);
-		color: var(--color-neutral-500);
 		font-size: var(--font-size-sm);
 		margin-top: var(--spacing-xs);
 	}
 
 	.success {
 		color: var(--color-success);
+	}
+
+	.in-progress {
+		color: var(--color-primary-light);
+	}
+
+	.progress-details {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-xs);
+		color: var(--color-neutral-500);
+	}
+
+	.progress-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--color-neutral-200);
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+		margin-top: var(--spacing-xs);
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: var(--color-primary-light);
+		transition: width 0.3s ease;
+	}
+
+	.progress-fill.success {
+		background: var(--color-success);
 	}
 </style>

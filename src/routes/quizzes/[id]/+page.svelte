@@ -1,107 +1,70 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
-	import { page } from '$app/state';
-	import MovieGuesser from '$lib/components/MovieGuesser.svelte';
-	import { gameState, updateQuizProgress } from '$lib/state/gameState';
-	import { Jumper } from 'svelte-loading-spinners';
+    import { onMount } from 'svelte';
+    import { fade } from 'svelte/transition';
+    import { page } from '$app/state';
+    import MovieGuesser from '$lib/components/MovieGuesser.svelte';
+    import { gameState, initializeQuiz, advanceQuestion } from '$lib/state/gameState';
+    import { Jumper } from 'svelte-loading-spinners';
 
-	let quiz = $state(null);
-	let loading = $state(true);
-	let currentQuestionIndex = $state(0);
-	let currentQuestion = $state(null);
-	let currentMovie = $state(null);
-	let progress = $state(0);
-	let isLastQuestion = $state(false);
+    let loading = $state(true);
 
-	onMount(async () => {
-		const quizId = page.params.id;
+    onMount(async () => {
+        const quizId = page.params.id;
 
-		// First check if we have it in state
-		if (gameState.activeQuizzes[quizId]) {
-			quiz = gameState.activeQuizzes[quizId];
-			currentQuestionIndex = quiz.currentQuestionIndex || 0;
-			loading = false;
-		}
+        // First check if we have it in state and it matches current quiz
+        if (gameState.currentQuiz.quizId === quizId && gameState.currentQuiz.quiz) {
+            loading = false;
+            return;
+        }
 
-		// Then fetch from API
-		try {
-			const response = await fetch(`/api/quizzes/${quizId}`);
-			const data = await response.json();
-			// data[questions][i][plot_index] is one based instead of zero based.
-			// Subtract 1 from plot_index to get the correct index.
-			data.quiz.questions.forEach(question => {
-				question.plot_index = Math.max(0, question.plot_index - 1);
-			});
-			quiz = data.quiz;
+        // Otherwise fetch from API
+        try {
+            const response = await fetch(`/api/quizzes/${quizId}`);
+            const data = await response.json();
 
-			if (!quiz || !quiz.movies) {
-				// Initialize new quiz state
-				quiz = {
-					...data.quiz,
-					currentQuestionIndex: 0,
-					score: 0,
-					accuracy: 0,
-					totalAttempts: 0,
-					totalQuestionsAnswered: 0
-				};
+            // Normalize plot indices
+            data.quiz.questions.forEach(question => {
+                question.plot_index = Math.max(0, question.plot_index - 1);
+            });
 
-				// Update state
-				gameState.activeQuizzes[quizId] = quiz;
-			}
-			setData();
-		} catch (error) {
-			console.error('Error fetching quiz:', error);
-		} finally {
-			loading = false;
-		}
-	});
+            // Initialize quiz state
+            await initializeQuiz(quizId, data.quiz);
+        } catch (error) {
+            console.error('Error fetching quiz:', error);
+        } finally {
+            loading = false;
+        }
+    });
 
-	function handleQuestionComplete() {
-		const quizId = page.params.id;
-
-		// Update quiz progress
-		currentQuestionIndex++;
-		quiz.currentQuestionIndex = currentQuestionIndex;
-
-
-		if (currentQuestionIndex >= quiz.questions.length - 1){
-			isLastQuestion = true;
-		}
-
-		updateQuizProgress(quizId, quiz);
-		setData();
-	}
-	function setData(){
-		currentQuestion = quiz?.questions?.[currentQuestionIndex];
-		currentMovie = quiz.movies[currentQuestion.movie_id];
-		progress = `Question ${currentQuestionIndex + 1}/${quiz.questions.length}`;
-	}
-
+    function handleQuestionComplete() {
+        advanceQuestion();
+    }
 </script>
 
 <div class="quiz-container" in:fade>
-	{#if loading}
-		<div class="loading">
-			<Jumper size={80} color={"var(--color-primary)"} unit="px" duration="1s"/>
-		</div>
-	{:else if quiz}
-		<div class="quiz-header">
-			<h2 class="quiz-title">{quiz.title}</h2>
-			<div class="quiz-progress">{progress}</div>
-		</div>
+    {#if loading}
+        <div class="loading">
+            <Jumper size={80} color={"var(--color-primary)"} unit="px" duration="1s"/>
+        </div>
+    {:else if gameState.currentQuiz.quiz}
+        <div class="quiz-header">
+            <h2 class="quiz-title">{gameState.currentQuiz.quiz.title}</h2>
+            <div class="quiz-progress">
+                Question {gameState.currentQuiz.currentQuestionIndex + 1}/{gameState.currentQuiz.totalQuestions}
+            </div>
+        </div>
 
-		{#if currentMovie}
-			<MovieGuesser
-				movie={currentMovie}
-				plotIndex={currentQuestion.plot_index}
-				onComplete={handleQuestionComplete}
-				quizMode={true}
-				quizId={page.params.id}
-				isLastQuestion={isLastQuestion}
-			/>
-		{/if}
-	{/if}
+        {#if gameState.currentQuiz.currentMovie}
+            <MovieGuesser
+                movie={gameState.currentQuiz.currentMovie}
+                plotIndex={gameState.currentQuiz.currentQuestion.plot_index}
+                onComplete={handleQuestionComplete}
+                quizMode={true}
+                quizId={page.params.id}
+                isLastQuestion={gameState.currentQuiz.isLastQuestion}
+            />
+        {/if}
+    {/if}
 </div>
 
 <style>

@@ -12,8 +12,6 @@
 		plotIndex = null,           // If provided, use this plot index
 		quizMode = false,           // Whether we're in quiz mode
 		onComplete = null,          // Callback for quiz mode when question is complete
-		quizId = null,               // Quiz ID for quiz mode
-		isLastQuestion = false      // Whether this is the last question in quiz mode
 	} = $props();
 
 	plotIndex = plotIndex || Math.floor(Math.random() * 4) + 1;
@@ -34,6 +32,7 @@
 			await fetchRandomMovie();
 		}
 		if (quizMode) {
+			const quizId = gameState.currentQuiz.quizId;
 			const quizStats = gameState.activeQuizzes[quizId];
 			score.target = quizStats?.score ?? 0;
 			accuracy.target = quizStats?.accuracy ?? 0;
@@ -55,7 +54,6 @@
 		}
 		posterPreloader = new Image();
 		posterPreloader.src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-
 	}
 
 	function updateScore(success, gaveUp = false) {
@@ -75,6 +73,7 @@
 		newScore = Math.max(0, newScore);
 
 		if (quizMode) {
+			const quizId = gameState.currentQuiz.quizId;
 			// Update quiz stats
 			const updatedStats = {
 				score: newScore,
@@ -108,7 +107,7 @@
 
 			// Only update accuracy on actual failures (not give-ups)
 			if (!gaveUp) {
-				updatedStats.totalQuestionsAnswered = (gameState.activeQuizzes[quizId]?.totalQuestionsAnswered ?? 0) + 1
+				updatedStats.totalQuestionsAnswered = gameState.globalStats.totalQuestionsAnswered + 1;
 				const correctAnswers = success ?
 					(gameState.globalStats.totalQuestionsAnswered * (gameState.globalStats.accuracy / 100)) + 1 :
 					(gameState.globalStats.totalQuestionsAnswered * (gameState.globalStats.accuracy / 100));
@@ -268,62 +267,60 @@
 {/if}
 
 {#if movie}
-		<div class="content" in:fade>
-			{#if guessState === 'playing'}
-				<div class="plot-container">
-					<div class="plot-difficulty">
-						<span class="difficulty-label">Level:</span>
-						{#each Array(5) as _, i}
-							<button class="star-button">
-								<span>
-									{#if i < movie.plots[plotIndex].difficulty}
-										<img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
-									{:else}
-										<img class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
-									{/if}
-								</span>
-							</button>
-						{/each}
-					</div>
-					{#key movie.plots[plotIndex].plot}
-						<div class="plot" in:fade={{duration:800}}>
-							{movie.plots[plotIndex].plot}
-						</div>
-					{/key}
+	<div class="content" in:fade>
+		{#if guessState === 'playing'}
+			<div class="plot-container">
+				<div class="plot-difficulty">
+					<span class="difficulty-label">Level:</span>
+					{#each Array(5) as _, i}
+						<button class="star-button">
+                                <span>
+                                    {#if i < movie.plots[plotIndex].difficulty}
+                                        <img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
+                                    {:else}
+                                        <img class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
+                                    {/if}
+                                </span>
+						</button>
+					{/each}
 				</div>
+				{#key movie.plots[plotIndex].plot}
+					<div class="plot" in:fade={{duration:800}}>
+						{movie.plots[plotIndex].plot}
+					</div>
+				{/key}
+			</div>
 
-				<div class="input-area">
-					<input
-						type="text"
-						bind:value={guess}
-						placeholder="My guess is..."
-						onkeydown={(e) => e.key === 'Enter' && checkGuess()}
-					/>
-					<div class="button-group">
-						{#if !quizMode}
-							<button class="button secondary-button" onclick={selectRandomMovie} title="Get another random movie">
-								<img src="/images/refresh.svg" alt="Refresh" class="refresh-icon" />
-							</button>
-						{/if}
-						<button class="button primary-button" onclick={checkGuess}>
-							Submit Guess
-						</button>
-						<button class="button error-button" onclick={giveUp}>
-							Give Up
-						</button>
-					</div>
-				</div>
-			{:else}
-				<MovieResult
-					movie={movie}
-					gameState={guessState}
-					onPlayAgain={!quizMode ? selectRandomMovie : undefined}
-					onNext={quizMode ? handleNext : undefined}
-					isLastQuestion={isLastQuestion}
-					quizId={quizId}
+			<div class="input-area">
+				<input
+					type="text"
+					bind:value={guess}
+					placeholder="My guess is..."
+					onkeydown={(e) => e.key === 'Enter' && checkGuess()}
 				/>
-			{/if}
-		</div>
+				<div class="button-group">
+					{#if !quizMode}
+						<button class="button secondary-button" onclick={selectRandomMovie} title="Get another random movie">
+							<img src="/images/refresh.svg" alt="Refresh" class="refresh-icon" />
+						</button>
+					{/if}
+					<button class="button primary-button" onclick={checkGuess}>
+						Submit Guess
+					</button>
+					<button class="button error-button" onclick={giveUp}>
+						Give Up
+					</button>
+				</div>
+			</div>
+		{:else}
+			<MovieResult
+				movie={movie}
+				gameState={guessState}
+				onPlayAgain={!quizMode ? selectRandomMovie : undefined}
+				onNext={quizMode ? handleNext : undefined}
+			/>
+		{/if}
+	</div>
 {:else}
 	<div class="loading">
 		<Jumper size={80} color={"var(--color-primary)"} unit="px" duration="1s"/>
