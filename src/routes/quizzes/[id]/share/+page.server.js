@@ -1,6 +1,14 @@
-// // routes/share/[quizId]/+page.server.js
-// import { redirect } from '@sveltejs/kit';
-//
-// export function load() {
-//     throw redirect(302, '/quizzes');
-// }
+// routes/share/[id]/+page.server.js
+export function load({ params, url }) {
+    const score = url.searchParams.get('score');
+    const accuracy = url.searchParams.get('accuracy');
+    const title = url.searchParams.get('title');
+
+		return {
+				score,
+				accuracy,
+				title,
+				quizId: params.id,
+				isCrawler: true
+		};
+}
