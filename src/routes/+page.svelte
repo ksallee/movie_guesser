@@ -40,7 +40,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
+		justify-content: flex-start;
 		gap: var(--spacing-2xl);
 		max-width: 800px;
 		margin: 0 auto;
@@ -109,14 +109,14 @@
 		padding: var(--spacing-xl);
 		background: var(--color-neutral-100);
 		border-radius: var(--radius-lg);
-		border: 2px solid var(--color-neutral-200);
+		border: 2px solid var(--color-primary);
 		transition: all 0.2s ease;
 		text-align: center;
 		min-height: 200px;
 
 		&:hover {
 			transform: translateY(-4px);
-			border-color: var(--color-primary);
+			border-color: var(--color-primary-light);
 			background: var(--color-neutral-200);
 		}
 	}
