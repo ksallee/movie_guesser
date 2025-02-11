@@ -30,7 +30,7 @@
 </script>
 
 <SEO
-	title="Guess the plot Quizzes"
+	title="Guess the movie Quizzes"
 	description="Test your knowledge with our movie quizzes!"
  	image="/images/quizzes_preview.jpg"
 />
