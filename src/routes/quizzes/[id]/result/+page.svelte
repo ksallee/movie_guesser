@@ -43,7 +43,7 @@
     }
 
     function shareTwitter() {
-        const url = 'https://guessthemoviegame.netlify.app/quizzes';
+        const url = 'https://guessthemoviegame.netlify.app/quizzes/${quizId}/share?score=${quizStats.score}&accuracy=${quizStats.accuracy}&title=${quizTitle}';
         const title = `I scored ${quizStats.score} points in Guess The Movie!`;
         const text = `I completed '${quizTitle}' with ${quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?`;
         window.open(
@@ -53,7 +53,7 @@
     }
 
     function shareFacebook() {
-        const url = 'https://guessthemoviegame.netlify.app/quizzes';
+        const url = 'https://guessthemoviegame.netlify.app/quizzes/${quizId}/share?score=${quizStats.score}&accuracy=${quizStats.accuracy}&title=${quizTitle}';
         const title = `I scored ${quizStats.score} points in Guess The Movie!`;
         const text = `I completed '${quizTitle}' with ${quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?`;
         window.open(
