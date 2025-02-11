@@ -2,11 +2,11 @@
     import SEO from '$lib/components/SEO.svelte';
     import { page } from '$app/state';
 
-    const quizId = page.params.quizId;
-    const searchParams = page.url.searchParams;
-    const score = searchParams.get('score') || 0;
-    const accuracy = searchParams.get('accuracy') || 0;
-    const title = searchParams.get('title') || 'a movie quiz';
+    const quizId = page.params.id;
+    const score = page.params.score;
+		const accuracy = page.params.accuracy;
+		const title = page.params.title;
+
 </script>
 
 <SEO
