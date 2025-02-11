@@ -1,7 +1,7 @@
 <script>
     import SEO from '$lib/components/SEO.svelte';
     import { page } from '$app/state';
-		
+
     const score = page.params.score;
 		const accuracy = page.params.accuracy;
 		const title = page.params.title;
