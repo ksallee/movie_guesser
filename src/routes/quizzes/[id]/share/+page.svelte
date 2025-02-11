@@ -15,3 +15,4 @@
     image="/images/quizzes_preview.jpg"
     url="https://guessthemoviegame.netlify.app/share/{quizId}?score={score}&accuracy={accuracy}&title={title}"
 />
+<h1>Nothing to see here</h1>
