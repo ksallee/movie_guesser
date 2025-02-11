@@ -1,16 +1,17 @@
-<!-- routes/share/[id]/+page.svelte -->
 <script>
     import SEO from '$lib/components/SEO.svelte';
+    import { page } from '$app/state';
 
-		export let data;
-
-    $: seoData = {
-        title: `I scored ${data.score} points on ${data.title}!`,
-        description: `I got ${data.accuracy}% accuracy. Can you beat my score?`,
-        image: "/images/share_preview.png",
-        url: `https://guessthemoviegame.netlify.app/share/${data.quizId}?score=${data.score}&accuracy=${data.accuracy}&title=${encodeURIComponent(data.title)}`,
-        type: "article"
-    }
+    const quizId = page.params.quizId;
+    const searchParams = page.url.searchParams;
+    const score = searchParams.get('score') || 0;
+    const accuracy = searchParams.get('accuracy') || 0;
+    const title = searchParams.get('title') || 'a movie quiz';
 </script>
 
-<SEO {...seoData} />
+<SEO
+    title="I scored {score} points in Guess The Movie!"
+    description="I completed '{title}' with {accuracy}% accuracy! Can you beat my score?"
+    image="/images/quizzes_preview.jpg"
+    url="https://guessthemoviegame.netlify.app/share/{quizId}?score={score}&accuracy={accuracy}&title={title}"
+/>
