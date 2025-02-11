@@ -15,5 +15,3 @@
     image="/images/quizzes_preview.webp"
     url="https://guessthemoviegame.netlify.app/share/{quizId}?score={score}&accuracy={accuracy}&title={title}"
 />
-
-<div>Redirecting...</div>
