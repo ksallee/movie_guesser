@@ -29,8 +29,11 @@
 	}
 </script>
 
-<SEO title="Guess the plot Quizzes" description="Test your knowledge with our movie quizzes!"
- image="/images/quizzes_preview.jpg"/>
+<SEO
+	title="Guess the plot Quizzes"
+	description="Test your knowledge with our movie quizzes!"
+ 	image="/images/quizzes_preview.jpg"
+/>
 <div class="quizzes-container" in:fade>
 	{#if loading}
 		<div class="loading">
