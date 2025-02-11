@@ -42,7 +42,7 @@
     }
 </script>
 
-<SEO title="Guess the movie Quiz" description="Test your knowledge with our movie quizzes!" image="/images/quizzes_preview.webp"/>
+<SEO title="Guess the movie Quiz" description="Test your knowledge with our movie quizzes!" image="/images/quizzes_preview.jpg"/>
 <div class="quiz-container" in:fade>
     {#if loading}
         <div class="loading">

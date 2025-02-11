@@ -66,7 +66,7 @@
 <SEO
     title="I scored {quizStats.score} points in Guess The Movie!"
     description="I completed '{quizTitle}' with {quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?"
-    image="/images/quizzes_preview.webp"
+    image="/images/quizzes_preview.jpg"
     url="https://guessthemoviegame.netlify.app/quizzes"
 />
 

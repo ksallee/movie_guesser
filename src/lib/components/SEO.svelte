@@ -2,7 +2,7 @@
 let {
     title = "Guess The Movie - A Movie Plot Guessing Game",
     description = "Test your movie knowledge by guessing films from their plot descriptions.",
-    image = "/images/question_preview.webp",
+    image = "/images/question_preview.jpg",
     url = "https://guessthemoviegame.netlify.app",
     type = "website"
 } = $props();
