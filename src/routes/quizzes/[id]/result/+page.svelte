@@ -105,20 +105,20 @@
             Explore More Quizzes
         </button>
 
-        {#if isMobile()}
-            <button class="button success-button" on:click={shareResult}>
-                Share Result
-            </button>
-        {:else}
-            <div class="social-buttons">
-                <button class="button success-button" on:click={shareTwitter}>
-                    Share on Twitter
-                </button>
-                <button class="button success-button" on:click={shareFacebook}>
-                    Share on Facebook
-                </button>
-            </div>
-        {/if}
+        <!--{#if isMobile()}-->
+        <!--    <button class="button success-button" on:click={shareResult}>-->
+        <!--        Share Result-->
+        <!--    </button>-->
+        <!--{:else}-->
+        <!--    <div class="social-buttons">-->
+        <!--        <button class="button success-button" on:click={shareTwitter}>-->
+        <!--            Share on Twitter-->
+        <!--        </button>-->
+        <!--        <button class="button success-button" on:click={shareFacebook}>-->
+        <!--            Share on Facebook-->
+        <!--        </button>-->
+        <!--    </div>-->
+        <!--{/if}-->
 
         <button class="button secondary-button" on:click={goHome}>
             Back to Home
