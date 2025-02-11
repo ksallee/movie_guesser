@@ -1,8 +1,10 @@
 <script>
 	import { gameState } from '$lib/state/gameState';
 	import { fade } from 'svelte/transition';
+	import SEO from '$lib/components/SEO.svelte';
 </script>
 
+<SEO />
 <div class="landing-container" in:fade>
 	<div class="stats-display">
 		<div class="stat-item">

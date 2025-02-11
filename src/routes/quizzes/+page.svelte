@@ -3,6 +3,7 @@
 	import { gameState } from '$lib/state/gameState';
 	import { Jumper } from 'svelte-loading-spinners';
 	import { onMount } from 'svelte';
+	import SEO from '$lib/components/SEO.svelte';
 
 	let quizzes = $state([]);
 	let loading = $state(true);
@@ -28,6 +29,8 @@
 	}
 </script>
 
+<SEO title="Guess the plot Quizzes" description="Test your knowledge with our movie quizzes!"
+ image="/images/quizzes_preview.webp"/>
 <div class="quizzes-container" in:fade>
 	{#if loading}
 		<div class="loading">
@@ -51,13 +54,13 @@
 						<div class="quiz-details">
 							<div class="quiz-difficulty">
 								{#each Array(5) as _, i}
-                                    <span>
-                                        {#if i < quiz.difficulty}
-                                            <img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
-                                        {:else}
-                                            <img class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
-                                        {/if}
-                                    </span>
+									<span>
+											{#if i < quiz.difficulty}
+													<img class="fire" src="/images/difficulty_on.svg" alt="Difficulty On" />
+											{:else}
+													<img class="fire" src="/images/difficulty_off.svg" alt="Difficulty Off" />
+											{/if}
+									</span>
 								{/each}
 							</div>
 							<span class="quiz-questions">{quiz.questions.length} Questions</span>

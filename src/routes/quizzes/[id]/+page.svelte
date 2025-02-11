@@ -5,6 +5,7 @@
     import MovieGuesser from '$lib/components/MovieGuesser.svelte';
     import { gameState, initializeQuiz, advanceQuestion } from '$lib/state/gameState';
     import { Jumper } from 'svelte-loading-spinners';
+		import SEO from '$lib/components/SEO.svelte';
 
     let loading = $state(true);
 
@@ -41,6 +42,7 @@
     }
 </script>
 
+<SEO title="Guess the movie Quiz" description="Test your knowledge with our movie quizzes!" image="/images/quizzes_preview.webp"/>
 <div class="quiz-container" in:fade>
     {#if loading}
         <div class="loading">

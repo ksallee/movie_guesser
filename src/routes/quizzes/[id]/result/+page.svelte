@@ -3,6 +3,8 @@
     import { fade } from 'svelte/transition';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
+		import SEO from '$lib/components/SEO.svelte';
+		import { browser } from '$app/environment';
 
     const quizId = page.params.id;
     const quizStats = gameState.completedQuizzes[quizId] || {
@@ -16,6 +18,7 @@
 
     // Mobile detection
     function isMobile() {
+        if (!browser) return false;
         return /mobile|android|iphone|ipad/i.test(navigator.userAgent);
     }
 
@@ -28,8 +31,8 @@
     }
 
     async function shareResult() {
-        const url = 'https://guessthemoviegame.netlify.app/quizzes';
-        const title = `I scored ${quizStats.score} points in Guess The Movie!`;
+        const url = `https://guessthemoviegame.netlify.app/quizzes/${quizId}/share?score=${quizStats.score}&accuracy=${quizStats.accuracy}&title=${quizTitle}`;
+        const title = `Quiz Results: ${quizStats.score} points in Guess The Movie!`;
         const text = `I completed '${quizTitle}' with ${quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?`;
 
         try {
@@ -60,13 +63,12 @@
     }
 </script>
 
-<svelte:head>
-    <meta property="og:title" content="I scored {quizStats.score} points in Guess The Movie!" />
-    <meta property="og:description" content="I completed '{quizTitle}' with {quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?" />
-    <meta property="og:image" content="/images/quizzes_preview.webp" />
-    <meta property="og:url" content="https://guessthemoviegame.netlify.app/quizzes" />
-    <meta property="og:type" content="website" />
-</svelte:head>
+<SEO
+    title="I scored {quizStats.score} points in Guess The Movie!"
+    description="I completed '{quizTitle}' with {quizStats.accuracy.toFixed(1)}% accuracy! Can you beat my score?"
+    image="/images/quizzes_preview.webp"
+    url="https://guessthemoviegame.netlify.app/quizzes"
+/>
 
 <div class="results-container" in:fade>
     <h1>Quiz Complete!</h1>
@@ -103,7 +105,7 @@
             Explore More Quizzes
         </button>
 
-        {#if isMobile() && navigator.share}
+        {#if isMobile()}
             <button class="button success-button" on:click={shareResult}>
                 Share Result
             </button>
