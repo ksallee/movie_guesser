@@ -6,20 +6,20 @@
 
 <SEO />
 <div class="landing-container" in:fade>
-	<div class="stats-display">
-		<div class="stat-item">
-			<span class="stat-label">Total Score</span>
-			<span class="stat-value">{gameState.globalStats.score}</span>
-		</div>
-		<div class="stat-item">
-			<span class="stat-label">Accuracy</span>
-			<span class="stat-value">{gameState.globalStats.accuracy.toFixed(1)}%</span>
-		</div>
-		<div class="stat-item">
-			<span class="stat-label">Questions Answered</span>
-			<span class="stat-value">{gameState.globalStats.totalQuestionsAnswered}</span>
-		</div>
-	</div>
+<!--	<div class="stats-display">-->
+<!--		<div class="stat-item">-->
+<!--			<span class="stat-label">Total Score</span>-->
+<!--			<span class="stat-value">{gameState.globalStats.score}</span>-->
+<!--		</div>-->
+<!--		<div class="stat-item">-->
+<!--			<span class="stat-label">Accuracy</span>-->
+<!--			<span class="stat-value">{gameState.globalStats.accuracy.toFixed(1)}%</span>-->
+<!--		</div>-->
+<!--		<div class="stat-item">-->
+<!--			<span class="stat-label">Questions Answered</span>-->
+<!--			<span class="stat-value">{gameState.globalStats.totalQuestionsAnswered}</span>-->
+<!--		</div>-->
+<!--	</div>-->
 
 	<div class="game-modes">
 		<a href="/random" class="mode-button">
