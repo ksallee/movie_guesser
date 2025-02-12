@@ -5,6 +5,8 @@
     import VisitorCounter from '$lib/components/VisitorCounter.svelte';
     import "../app.css";
 
+		let { children } = $props()
+
     onMount(async () => {
         await initializeAnonymousAuth();
         await syncGlobalStats(); // Sync stats when app loads
@@ -13,7 +15,7 @@
 
 <div class="game-container">
     <h1 class="game-title"><a href="/">Guess The Movie</a></h1>
-    <slot />
+    {@render children()}
     <div class="footer">
         <VisitorCounter />
         <p class="footer-text">Made with ❤️ by <a href="mailto:kevin.sallee@gmail.com">Kevin Sallée</a></p>
